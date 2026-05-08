@@ -17,6 +17,16 @@ We build a small end-to-end data pipeline:
 
 > A BI layer (Metabase) will be added later — for now everything stops at the dbt marts.
 
+### The end state — a star schema
+
+By the end of the tutorial, the `analytics.marts.*` schema will hold this Kimball-style star — that's the deliverable students build during Tasks 2 and 3.
+
+<p align="center">
+  <img src="assets/star_schema.svg" alt="Star schema: fact_sales surrounded by dim_date, dim_customer, dim_product, dim_sales_person, dim_sales_territory" width="100%">
+</p>
+
+One fact table at the centre (`fact_sales`, grain = one row per order line item), five conformed dimensions around it, surrogate-key joins all the way through. Anything you can answer about AdventureWorks sales — by territory, by product category, over time, per salesperson — drops out of querying this layer.
+
 ## Stack
 
 - **Postgres 16** as the warehouse, with three DBs: `analytics` (AdventureWorks target), `playground` (dbt warm-up), `kestra` (backing store)
