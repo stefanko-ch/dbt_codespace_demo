@@ -17,5 +17,4 @@ ENV POSTGRES_HOST=postgres \
     POSTGRES_PORT=5432 \
     POSTGRES_USER=postgres \
     POSTGRES_PASSWORD=postgres \
-    POSTGRES_DB=analytics \
-    DBT_PROFILES_DIR=/workspaces/dbt_codespace_demo/dbt
+    POSTGRES_DB=analytics

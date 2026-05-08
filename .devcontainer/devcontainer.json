@@ -21,6 +21,9 @@
             "onAutoForward": "openPreview"
         }
     },
+    "containerEnv": {
+        "DBT_PROFILES_DIR": "${containerWorkspaceFolder}/dbt"
+    },
     "postCreateCommand": "cd dbt && uv sync && (grep -q 'dbt/.venv/bin/activate' /root/.bashrc || echo \"source ${containerWorkspaceFolder}/dbt/.venv/bin/activate\" >> /root/.bashrc)",
     "customizations": {
         "vscode": {

@@ -1,16 +1,32 @@
 # dbt + n8n + Postgres Codespace Demo
 
-Codespace environment for the workshop. Includes:
+Codespace environment for the workshop.
 
-- **Postgres 16** as the data warehouse
-- **n8n** for workflow automation (with Postgres as backing store)
+## What we're doing
+
+We build a small end-to-end data pipeline:
+
+```
+ Azure SQL (AdventureWorks)  ──►  n8n  ──►  Postgres (raw)  ──►  dbt  ──►  Postgres (staging → marts)
+       source system          ingest      landing zone     transform        analytics models
+```
+
+- **Source:** the full **AdventureWorks** sample database hosted on Azure SQL (not AdventureWorksLT — we use the complete schema with `Sales`, `Production`, `Person`, `HumanResources`, etc.).
+- **Ingest with n8n:** workflows in n8n connect to Azure SQL using credentials read from Codespace secrets, pull selected tables, and load them into the `raw` schema of the local Postgres.
+- **Transform with dbt:** a dbt project on top of Postgres turns the raw tables into clean staging views and curated marts. DuckDB is wired up as an alternative target for offline experiments.
+- **Everything runs in a Codespace:** Postgres, n8n, and the dbt toolchain are containers in one `docker-compose` stack. Students fork the repo, open it in a Codespace, and have the full environment in a few minutes.
+
+## Stack
+
+- **Postgres 16** as the warehouse
+- **n8n** for workflow automation (uses Postgres as its backing store)
 - **dbt** (Postgres + DuckDB adapters) as a uv-managed Python project
 - VS Code extensions for dbt and SQL, with pre-configured Postgres connections
 
 ## Quickstart
 
 1. Fork the repository on GitHub.
-2. (Optional) Add Azure SQL secrets — see [Azure SQL secrets](#azure-sql-secrets-for-n8n) below.
+2. Add the Azure SQL Codespace secrets — see [Azure SQL secrets for n8n](#azure-sql-secrets-for-n8n) below. Without these, n8n cannot reach AdventureWorks.
 3. In your fork: **Code → Codespaces → Create codespace on main**.
 4. On first start, Codespaces builds the image and runs `uv sync` (~2–3 min).
 5. Once the codespace is ready, these ports are forwarded automatically:
