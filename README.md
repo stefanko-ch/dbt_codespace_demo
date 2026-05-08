@@ -72,9 +72,9 @@ To let n8n query the warehouse, create a **Postgres** credential in n8n with:
 
 n8n can reach Azure SQL using **Codespaces secrets** — credentials never live in the repo.
 
-**1. Add the secrets in GitHub** (per-user, scoped to this fork):
+**Step 1 — Add the secrets in GitHub** (per-user, scoped to this fork)
 
-Go to <https://github.com/settings/codespaces> → **New secret** and create:
+Go to <https://github.com/settings/codespaces> → **New secret** and create the four secrets below. For each one, under **Repository access**, select your fork of this repo.
 
 | Secret name           | Example value                              |
 | --------------------- | ------------------------------------------ |
@@ -83,9 +83,13 @@ Go to <https://github.com/settings/codespaces> → **New secret** and create:
 | `AZURE_SQL_USER`      | `sqladmin`                                 |
 | `AZURE_SQL_PASSWORD`  | `…`                                        |
 
-For each secret, grant access to your fork of this repo. Existing codespaces need to be rebuilt (or recreated) to pick up new secrets.
+**Step 2 — (Re)create the codespace**
 
-**2. Use them in n8n.** The secrets are forwarded into the n8n container as env vars. In an n8n credential or any expression field, reference them with:
+Codespace secrets are only injected at codespace creation. If your codespace was created before adding the secrets, **delete it and create a new one** (a "Rebuild Container" alone is not enough). New secrets you add later need the same treatment.
+
+**Step 3 — Reference the secrets in n8n**
+
+The secrets are forwarded into the n8n container as env vars. When creating a **Microsoft SQL** credential in n8n (or any expression field), use:
 
 ```
 ={{ $env.AZURE_SQL_HOST }}
@@ -94,9 +98,11 @@ For each secret, grant access to your fork of this repo. Existing codespaces nee
 ={{ $env.AZURE_SQL_PASSWORD }}
 ```
 
-Use the **Microsoft SQL** node to connect — n8n ships with the driver out of the box. If a secret is missing, the env var is empty and the connection will fail with a clear error.
+n8n ships with the SQL Server driver out of the box. If a secret is missing, the env var is empty and the connection fails with a clear error.
 
-> Azure SQL firewall: make sure your server allows the Codespace's outbound IP, or enable "Allow Azure services and resources to access this server" if acceptable for your scenario.
+> **Azure SQL firewall:** make sure your server allows the Codespace's outbound IP, or enable "Allow Azure services and resources to access this server" if that fits your scenario.
+
+> **Adding more secrets later:** add the env var to the `n8n` service in [`.devcontainer/docker-compose.yml`](.devcontainer/docker-compose.yml) (using `${MY_SECRET:-}`), commit, and recreate the codespace.
 
 ## Layout
 
