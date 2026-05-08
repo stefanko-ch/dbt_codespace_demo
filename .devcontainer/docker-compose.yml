@@ -47,8 +47,16 @@ services:
       DB_POSTGRESDB_USER: postgres
       DB_POSTGRESDB_PASSWORD: postgres
       N8N_SECURE_COOKIE: "false"
-      N8N_RUNNERS_ENABLED: "true"
       GENERIC_TIMEZONE: Europe/Zurich
+      # Tell n8n the public URL it is reached on. Codespaces forwards each
+      # port at https://<codespace-name>-<port>.<domain>. CODESPACE_NAME and
+      # GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN are injected by Codespaces.
+      # Without these, n8n's origin check blocks UI calls (workflow execution,
+      # credentials test, etc.) with "Origin header does not match".
+      N8N_HOST: ${CODESPACE_NAME}-5678.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}
+      N8N_PROTOCOL: https
+      N8N_EDITOR_BASE_URL: https://${CODESPACE_NAME}-5678.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}
+      WEBHOOK_URL: https://${CODESPACE_NAME}-5678.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/
       # Allow workflow expressions to read $env.* (forwards Codespace secrets).
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       # Azure SQL credentials forwarded from Codespace secrets.
