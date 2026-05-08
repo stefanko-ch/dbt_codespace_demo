@@ -22,7 +22,7 @@ We build a small end-to-end data pipeline:
 - **Kestra** for orchestrating the bronze ingestion (declarative YAML flows, JDBC source/destination)
 - **dbt** (Postgres + DuckDB adapters) as a uv-managed Python project, with named targets for `playground` (default) and `analytics`
 - **Metabase** for BI and dashboards
-- VS Code extensions: dbt Power User and Database Client (Weijan) for browsing/querying Postgres
+- VS Code extensions: dbt Power User and SQLTools (with the PostgreSQL driver) — pre-configured connections for all four DBs
 - `docker` CLI available inside the workspace (via docker-outside-of-docker) for `docker logs`, `docker exec`, etc.
 
 ## Quickstart
@@ -84,15 +84,7 @@ psql                           # drops into the playground DB by default
 psql -d analytics              # switch DB (or any of: kestra, metabase)
 ```
 
-Or use the **Database Client** sidebar in VS Code (icon shaped like a cylinder). On first launch, click **+ Add** and create a PostgreSQL connection with:
-
-- Host: `postgres`
-- Port: `5432`
-- User: `postgres`
-- Password: `postgres`
-- Default database: any (the tree exposes all four)
-
-The tree view lets you browse `analytics`, `playground`, `kestra`, and `metabase` side by side, run queries, edit table data inline, and view ER diagrams.
+Or use the **SQLTools** sidebar in VS Code (database icon in the activity bar). Four connections are pre-configured — `analytics`, `playground`, `kestra`, `metabase`. Click any of them, then "Connect", no password prompt.
 
 Schemas inside the `playground` and `analytics` DBs after `dbt run`:
 - `raw` — seeds / ingested tables
