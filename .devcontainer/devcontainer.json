@@ -1,5 +1,5 @@
 {
-    "name": "dbt + n8n + Postgres",
+    "name": "dbt + Kestra + Postgres",
     "dockerComposeFile": "docker-compose.yml",
     "service": "workspace",
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",

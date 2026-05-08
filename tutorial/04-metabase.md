@@ -35,7 +35,7 @@ Metabase's own data (questions, dashboards, users) is persisted in the `metabase
 
 Save. Metabase will sync — wait for the "Done" indicator (~30 seconds).
 
-> Tip: limiting **Schemas** to `marts,staging` keeps Metabase from scanning n8n's internal tables.
+> Tip: limiting **Schemas** to `marts,staging` keeps Metabase from scanning Kestra's internal tables.
 
 ## Step 3 — Curate the model (one-time setup)
 
@@ -122,6 +122,6 @@ You can:
 
 ## Done!
 
-You've walked the full path: source system → bronze (n8n) → silver/gold (dbt) → BI (Metabase). The pattern scales: add another source by creating new `raw.*` tables and `stg_*` models; extend the star schema by adding new dimensions or facts; new dashboards consume them automatically.
+You've walked the full path: source system → bronze (Kestra) → silver/gold (dbt) → BI (Metabase). The pattern scales: add another source by creating a new flow plus `raw.*` tables, write `stg_*` models on top, extend the star schema with new dimensions or facts, and dashboards consume them automatically.
 
 → Back to [Tutorial overview](README.md)

@@ -1,4 +1,4 @@
-# dbt + n8n + Postgres Codespace Demo
+# dbt + Kestra + Postgres Codespace Demo
 
 Codespace environment for the workshop.
 
@@ -7,19 +7,19 @@ Codespace environment for the workshop.
 We build a small end-to-end data pipeline:
 
 <p align="center">
-  <img src="assets/pipeline.svg" alt="Pipeline: Azure SQL → n8n → Postgres raw → dbt → Postgres staging/marts → Metabase" width="100%">
+  <img src="assets/pipeline.svg" alt="Pipeline: Azure SQL → Kestra → Postgres raw → dbt → Postgres staging/marts → Metabase" width="100%">
 </p>
 
 - **Source:** the full **AdventureWorks** sample database hosted on Azure SQL (not AdventureWorksLT — we use the complete schema with `Sales`, `Production`, `Person`, `HumanResources`, etc.).
-- **Ingest with n8n:** workflows in n8n connect to Azure SQL using credentials read from Codespace secrets, pull selected tables, and load them into the `raw` schema of the local Postgres.
+- **Ingest with Kestra:** a YAML flow ([`flows/bronze_adventureworks.yml`](flows/bronze_adventureworks.yml)) queries Azure SQL and bulk-loads the result into the `raw` schema of the local Postgres via `Postgres.CopyIn`. Credentials are entered at execution time, so no secrets live in the repo.
 - **Transform with dbt:** a dbt project on top of Postgres turns the raw tables into clean staging views and curated marts. DuckDB is wired up as an alternative target for offline experiments.
 - **Visualize with Metabase:** Metabase connects to the same Postgres warehouse to explore the marts and build dashboards.
-- **Everything runs in a Codespace:** Postgres, n8n, dbt, and Metabase are containers in one `docker-compose` stack. Students fork the repo, open it in a Codespace, and have the full environment in a few minutes.
+- **Everything runs in a Codespace:** Postgres, Kestra, dbt, and Metabase are containers in one `docker-compose` stack. Students fork the repo, open it in a Codespace, and have the full environment in a few minutes.
 
 ## Stack
 
-- **Postgres 16** as the warehouse, with three DBs: `analytics` (AdventureWorks target), `playground` (dbt warm-up), `n8n` and `metabase` (backing stores)
-- **n8n** for workflow automation
+- **Postgres 16** as the warehouse, with four DBs: `analytics` (AdventureWorks target), `playground` (dbt warm-up), `kestra` and `metabase` (backing stores)
+- **Kestra** for orchestrating the bronze ingestion (declarative YAML flows, JDBC source/destination)
 - **dbt** (Postgres + DuckDB adapters) as a uv-managed Python project, with named targets for `playground` (default) and `analytics`
 - **Metabase** for BI and dashboards
 - VS Code extensions: dbt Power User and Database Client (Weijan) for browsing/querying Postgres
@@ -29,11 +29,13 @@ We build a small end-to-end data pipeline:
 
 1. Fork the repository on GitHub.
 2. In your fork: **Code → Codespaces → Create codespace on main**.
-4. On first start, Codespaces builds the image and runs `uv sync` (~2–3 min).
-5. Once the codespace is ready, these ports are forwarded automatically:
-   - **5678** → n8n UI (opens automatically in the preview pane)
+3. On first start, Codespaces builds the image and runs `uv sync` (~2–3 min). Kestra adds another ~30–60 s for JVM warmup on first launch.
+4. Once the codespace is ready, these ports are forwarded automatically:
+   - **8080** → Kestra UI (auto-opens in the preview pane)
    - **3000** → Metabase UI
    - **5432** → Postgres
+
+For the full guided path (bronze → silver → gold → BI), see [`tutorial/README.md`](tutorial/README.md).
 
 ## Using dbt
 
@@ -49,7 +51,7 @@ dbt test           # runs the tests
 
 ### Library warm-up (default target: `playground`)
 
-The repo ships a small **library domain** example so the toolchain is verifiable on day one without depending on n8n or AdventureWorks:
+The repo ships a small **library domain** example so the toolchain is verifiable on day one without depending on Kestra or AdventureWorks:
 
 - Seeds: `raw_books`, `raw_members`, `raw_loans`
 - Staging: `stg_books`, `stg_members`, `stg_loans`
@@ -61,11 +63,11 @@ These are written into the **`playground`** Postgres database (separate from `an
 
 `dbt/profiles.yml` defines three named outputs:
 
-| Target       | Backend          | Use case                                                    |
-| ------------ | ---------------- | ----------------------------------------------------------- |
-| `playground` | Postgres `playground` DB | **default** — library warm-up                       |
-| `analytics`  | Postgres `analytics` DB  | the real project against AdventureWorks data ingested by n8n |
-| `duckdb`     | local file       | offline experiments                                          |
+| Target       | Backend                 | Use case                                                     |
+| ------------ | ----------------------- | ------------------------------------------------------------ |
+| `playground` | Postgres `playground` DB | **default** — library warm-up                                |
+| `analytics`  | Postgres `analytics` DB  | the real project against AdventureWorks data ingested by Kestra |
+| `duckdb`     | local file              | offline experiments                                          |
 
 ```bash
 dbt run                       # default → playground
@@ -78,8 +80,8 @@ dbt run --target duckdb       # writes ./analytics.duckdb (gitignored)
 From the terminal:
 
 ```bash
-psql                                    # drops into the playground DB by default
-psql -d analytics                       # switch DB (or any of: n8n, metabase)
+psql                           # drops into the playground DB by default
+psql -d analytics              # switch DB (or any of: kestra, metabase)
 ```
 
 Or use the **Database Client** sidebar in VS Code (icon shaped like a cylinder). On first launch, click **+ Add** and create a PostgreSQL connection with:
@@ -90,23 +92,20 @@ Or use the **Database Client** sidebar in VS Code (icon shaped like a cylinder).
 - Password: `postgres`
 - Default database: any (the tree exposes all four)
 
-The tree view lets you browse `analytics`, `playground`, `n8n`, and `metabase` side by side, run queries, edit table data inline, and view ER diagrams.
+The tree view lets you browse `analytics`, `playground`, `kestra`, and `metabase` side by side, run queries, edit table data inline, and view ER diagrams.
 
 Schemas inside the `playground` and `analytics` DBs after `dbt run`:
 - `raw` — seeds / ingested tables
 - `staging` — views
 - `marts` — tables
 
-## n8n
+## Kestra
 
-UI on port **5678**. On first visit n8n creates an owner account. Workflows are persisted in the `n8n` database on Postgres (survives container restarts).
+UI on port **8080**. The sandbox config has authentication off — you land directly in the dashboard.
 
-To let n8n query the warehouse, create a **Postgres** credential in n8n with:
-- Host: `postgres`
-- Database: `analytics`
-- User: `postgres`
-- Password: `postgres`
-- Port: `5432`
+The container mounts the repo's [`flows/`](flows/) directory read-only into `/app/flows`, so any YAML flow you commit shows up automatically in the UI under its declared `namespace`. Kestra's own state (executions, logs, schedules) lives in the `kestra` Postgres database and survives container restarts.
+
+The bronze ingestion flow [`bronze_adventureworks.yml`](flows/bronze_adventureworks.yml) declares its Azure SQL credentials as **inputs** — Kestra prompts for them at execution time, so they never need to be checked into git or set as Codespace secrets.
 
 ## Metabase
 
@@ -123,51 +122,17 @@ To explore the dbt output, add the warehouse as a database in **Settings → Dat
 
 Once added, Metabase will sync the schemas — `marts.*` is the recommended starting point for dashboards.
 
-### Azure SQL secrets for n8n
-
-n8n can reach Azure SQL using **Codespaces secrets** — credentials never live in the repo.
-
-**Step 1 — Add the secrets in GitHub** (per-user, scoped to this fork)
-
-Go to <https://github.com/settings/codespaces> → **New secret** and create the four secrets below. For each one, under **Repository access**, select your fork of this repo.
-
-| Secret name           | Example value                              |
-| --------------------- | ------------------------------------------ |
-| `AZURE_SQL_HOST`      | `myserver.database.windows.net`            |
-| `AZURE_SQL_DATABASE`  | `mydb`                                     |
-| `AZURE_SQL_USER`      | `sqladmin`                                 |
-| `AZURE_SQL_PASSWORD`  | `…`                                        |
-
-**Step 2 — (Re)create the codespace**
-
-Codespace secrets are only injected at codespace creation. If your codespace was created before adding the secrets, **delete it and create a new one** (a "Rebuild Container" alone is not enough). New secrets you add later need the same treatment.
-
-**Step 3 — Reference the secrets in n8n**
-
-The secrets are forwarded into the n8n container as env vars. When creating a **Microsoft SQL** credential in n8n (or any expression field), use:
-
-```
-={{ $env.AZURE_SQL_HOST }}
-={{ $env.AZURE_SQL_DATABASE }}
-={{ $env.AZURE_SQL_USER }}
-={{ $env.AZURE_SQL_PASSWORD }}
-```
-
-n8n ships with the SQL Server driver out of the box. If a secret is missing, the env var is empty and the connection fails with a clear error.
-
-> **Azure SQL firewall:** make sure your server allows the Codespace's outbound IP, or enable "Allow Azure services and resources to access this server" if that fits your scenario.
-
-> **Adding more secrets later:** add the env var to the `n8n` service in [`.devcontainer/docker-compose.yml`](.devcontainer/docker-compose.yml) (using `${MY_SECRET:-}`), commit, and recreate the codespace.
-
 ## Layout
 
 ```
 .devcontainer/
   Dockerfile           # Python 3.12 + uv + psql client
   devcontainer.json    # Codespace config (ports, postCreate, extensions, docker-in-docker)
-  docker-compose.yml   # workspace + postgres + n8n + metabase
+  docker-compose.yml   # workspace + postgres + kestra + metabase
   postgres-init/
-    01-init-databases.sh   # creates n8n / metabase / playground DBs and raw/staging/marts schemas
+    01-init-databases.sh   # creates kestra / metabase / playground DBs and raw/staging/marts schemas
+flows/
+  bronze_adventureworks.yml  # Kestra flow: 9 AdventureWorks tables → analytics.raw
 dbt/
   pyproject.toml       # uv: dbt-core, dbt-postgres, dbt-duckdb
   dbt_project.yml
@@ -176,9 +141,10 @@ dbt/
   models/
     staging/           # stg_books, stg_members, stg_loans (views)
     marts/             # book_popularity, member_activity (tables)
+tutorial/              # guided workshop (Bronze → Silver → Gold → Metabase)
 ```
 
 ## Notes
 
-- Postgres, n8n, and Metabase data persist in Docker volumes (`postgres-data`, `n8n-data`, `metabase-data`). Stopping the codespace keeps them; deleting the codespace wipes them.
+- Postgres, Kestra, and Metabase data persist in Docker volumes (`postgres-data`, `kestra-data`, `metabase-data`). Stopping the codespace keeps them; deleting the codespace wipes them.
 - If `uv sync` fails, run it manually in `dbt/` and open a new terminal.

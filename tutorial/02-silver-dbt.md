@@ -46,7 +46,7 @@ version: 2
 
 sources:
   - name: adventureworks
-    description: "Bronze tables ingested from Azure SQL AdventureWorks by n8n."
+    description: "Bronze tables ingested from Azure SQL AdventureWorks by Kestra."
     database: analytics
     schema: raw
     tables:

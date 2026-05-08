@@ -2,8 +2,9 @@
 -- Run from the Codespace terminal:
 --   psql -d analytics -f tutorial/sql/01_create_bronze_tables.sql
 --
--- Column types are chosen to be permissive enough that n8n's Postgres
--- "Insert rows" node accepts whatever the Microsoft SQL node returns.
+-- Column order and types must match the SELECT projections in
+-- flows/bronze_adventureworks.yml, since Kestra's Postgres CopyIn task
+-- maps CSV columns onto table columns positionally.
 -- Strings default to TEXT, numbers to NUMERIC, dates to TIMESTAMP.
 
 CREATE SCHEMA IF NOT EXISTS raw;

@@ -1,6 +1,6 @@
 # Tutorial — From AdventureWorks to a Metabase Dashboard
 
-End-to-end workshop: take the **AdventureWorks** sample database on Azure SQL, ingest it into Postgres with **n8n**, build a **dimensional model** with **dbt**, and analyze it in **Metabase**.
+End-to-end workshop: take the **AdventureWorks** sample database on Azure SQL, ingest it into Postgres with **Kestra**, build a **dimensional model** with **dbt**, and analyze it in **Metabase**.
 
 You'll work through four tasks. Each task is a self-contained markdown with goal, steps, and an acceptance check.
 
@@ -14,7 +14,7 @@ The `analytics` Postgres database receives all production data. Schemas inside i
 
 | Schema     | Layer  | Owned by | What lives here                                  |
 | ---------- | ------ | -------- | ------------------------------------------------ |
-| `raw`      | Bronze | n8n      | Raw 1:1 copies of source tables                  |
+| `raw`      | Bronze | Kestra   | Raw 1:1 copies of source tables                  |
 | `staging`  | Silver | dbt      | Cleaned, typed, renamed views                    |
 | `marts`    | Gold   | dbt      | Star schema: `fact_sales` + `dim_*` (tables)     |
 
@@ -22,29 +22,29 @@ The `playground` database is left alone for the dbt warm-up (`dbt seed && dbt ru
 
 ## Tasks
 
-| # | Task                                                | Tool        |
-| - | --------------------------------------------------- | ----------- |
-| 1 | [Bronze: ingest AdventureWorks with n8n](01-bronze-n8n.md) | n8n         |
-| 2 | [Silver: clean staging models](02-silver-dbt.md)    | dbt         |
-| 3 | [Gold: dimensional model](03-gold-dimensional-model.md) | dbt         |
-| 4 | [Analyze in Metabase](04-metabase.md)               | Metabase    |
+| # | Task                                                            | Tool        |
+| - | --------------------------------------------------------------- | ----------- |
+| 1 | [Bronze: ingest AdventureWorks with Kestra](01-bronze-kestra.md) | Kestra      |
+| 2 | [Silver: clean staging models](02-silver-dbt.md)                | dbt         |
+| 3 | [Gold: dimensional model](03-gold-dimensional-model.md)         | dbt         |
+| 4 | [Analyze in Metabase](04-metabase.md)                           | Metabase    |
 
 ## Ports in the Codespace
 
 The Codespace forwards three ports — find them in the **Ports** panel at the bottom of VS Code, or under "Forwarded Addresses" in the Codespaces UI.
 
-| Port  | What it is | How to open                                                |
-| ----- | ---------- | ---------------------------------------------------------- |
-| 5678  | **n8n** UI | Click the globe icon next to port 5678 (also auto-opens as a preview on first start) |
-| 3000  | **Metabase** UI | Click the globe icon next to port 3000                |
-| 5432  | **Postgres** | Not for the browser — used by dbt, Database Client, `psql`, and Metabase's internal connection |
+| Port  | What it is        | How to open                                                                                |
+| ----- | ----------------- | ------------------------------------------------------------------------------------------ |
+| 8080  | **Kestra** UI     | Click the globe icon next to port 8080 (auto-opens as a preview on first start)            |
+| 3000  | **Metabase** UI   | Click the globe icon next to port 3000                                                     |
+| 5432  | **Postgres**      | Not for the browser — used by dbt, Database Client, `psql`, and Metabase's internal connection |
 
-> The forwarded URL looks something like `https://<codespace-name>-5678.app.github.dev` — that's normal. Each port gets its own subdomain.
+> The forwarded URL looks like `https://<codespace-name>-8080.app.github.dev` — that's normal. Each port gets its own subdomain.
 
 ## Before you start
 
 1. Codespace is up and running (see [main README](../README.md))
-2. Azure SQL Codespace secrets are set (`AZURE_SQL_HOST`, `AZURE_SQL_DATABASE`, `AZURE_SQL_USER`, `AZURE_SQL_PASSWORD`) and the codespace was created **after** you added them
+2. You have credentials to the Azure SQL AdventureWorks database (host, db, user, password). They are entered into the Kestra flow at execution time — no Codespace secrets required.
 3. The dbt warm-up runs successfully:
    ```bash
    cd dbt

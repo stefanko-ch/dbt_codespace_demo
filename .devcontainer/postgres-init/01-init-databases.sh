@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Backing-store DBs and the dbt warm-up DB. The `analytics` DB is created by
 # the postgres image itself via POSTGRES_DB, and is reserved for the
-# AdventureWorks ingest from n8n.
+# AdventureWorks ingest from Kestra.
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
     CREATE DATABASE kestra;
     CREATE DATABASE metabase;

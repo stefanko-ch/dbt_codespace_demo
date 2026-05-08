@@ -3,7 +3,7 @@ dbt_codespace_demo:
   outputs:
 
     # Library warm-up example. Lives in its own DB so it stays isolated from
-    # the n8n / AdventureWorks pipeline. This is the default target.
+    # the Kestra / AdventureWorks pipeline. This is the default target.
     playground:
       type: postgres
       host: "{{ env_var('POSTGRES_HOST', 'postgres') }}"
@@ -14,7 +14,7 @@ dbt_codespace_demo:
       schema: public
       threads: 4
 
-    # Real warehouse: receives AdventureWorks data ingested by n8n.
+    # Real warehouse: receives AdventureWorks data ingested by Kestra.
     analytics:
       type: postgres
       host: "{{ env_var('POSTGRES_HOST', 'postgres') }}"
