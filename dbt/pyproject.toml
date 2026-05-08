@@ -1,0 +1,10 @@
+[project]
+name = "dbt-codespace-demo"
+version = "0.1.0"
+description = "Beispiel-dbt-Projekt fuer den Codespace-Workshop (Postgres + DuckDB)"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "dbt-core>=1.9,<1.10",
+    "dbt-postgres>=1.9,<1.10",
+    "dbt-duckdb>=1.9,<1.10",
+]

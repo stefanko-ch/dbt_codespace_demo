@@ -1,0 +1,43 @@
+{
+    "name": "dbt + n8n + Postgres",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "workspace",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    "hostRequirements": {
+        "cpus": 2,
+        "memory": "8gb",
+        "storage": "32gb"
+    },
+    "forwardPorts": [
+        5432,
+        5678
+    ],
+    "portsAttributes": {
+        "5432": {
+            "label": "Postgres"
+        },
+        "5678": {
+            "label": "n8n",
+            "onAutoForward": "openPreview"
+        }
+    },
+    "postCreateCommand": "cd dbt && uv sync && (grep -q 'dbt/.venv/bin/activate' /root/.bashrc || echo \"source ${containerWorkspaceFolder}/dbt/.venv/bin/activate\" >> /root/.bashrc)",
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "python.defaultInterpreterPath": "${containerWorkspaceFolder}/dbt/.venv/bin/python",
+                "python.terminal.activateEnvironment": true,
+                "[sql]": {
+                    "editor.defaultFormatter": "innoverio.vscode-dbt-power-user"
+                }
+            },
+            "extensions": [
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "innoverio.vscode-dbt-power-user",
+                "mtxr.sqltools",
+                "mtxr.sqltools-driver-pg"
+            ]
+        }
+    }
+}

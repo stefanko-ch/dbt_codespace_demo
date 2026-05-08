@@ -1,0 +1,16 @@
+analytics:
+  target: postgres
+  outputs:
+    postgres:
+      type: postgres
+      host: "{{ env_var('POSTGRES_HOST', 'postgres') }}"
+      port: "{{ env_var('POSTGRES_PORT', '5432') | int }}"
+      user: "{{ env_var('POSTGRES_USER', 'postgres') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD', 'postgres') }}"
+      dbname: "{{ env_var('POSTGRES_DB', 'analytics') }}"
+      schema: public
+      threads: 4
+    duckdb:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', 'analytics.duckdb') }}"
+      threads: 4
