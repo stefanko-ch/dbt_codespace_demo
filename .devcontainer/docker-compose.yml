@@ -67,7 +67,7 @@ services:
           server:
             forward-headers-enabled: true
     ports:
-      - "8080:8080"
+      - "8090:8080"
     volumes:
       - kestra-data:/app/storage
       - ../flows:/app/flows:ro

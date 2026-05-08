@@ -32,14 +32,15 @@ The `playground` database is left alone for the dbt warm-up (`dbt seed && dbt ru
 
 ## Ports in the Codespace
 
-The Codespace forwards two ports — find them in the **Ports** panel at the bottom of VS Code, or under "Forwarded Addresses" in the Codespaces UI.
+The Codespace forwards three ports — find them in the **Ports** panel at the bottom of VS Code, or under "Forwarded Addresses" in the Codespaces UI.
 
-| Port  | What it is    | How to open                                                                       |
-| ----- | ------------- | --------------------------------------------------------------------------------- |
-| 8080  | **Kestra** UI | Click the globe icon next to port 8080 (auto-opens as a preview on first start)   |
-| 5432  | **Postgres**  | Not for the browser — used by dbt, SQLTools, `psql`                               |
+| Port  | What it is      | How to open                                                                       |
+| ----- | --------------- | --------------------------------------------------------------------------------- |
+| 8090  | **Kestra** UI   | Click the globe icon next to port 8090 (auto-opens as a preview on first start)   |
+| 8080  | **dbt docs**    | Click the globe icon next to port 8080 after running `dbt docs serve` in `dbt/`   |
+| 5432  | **Postgres**    | Not for the browser — used by dbt, SQLTools, `psql`                               |
 
-> The forwarded URL looks like `https://<codespace-name>-8080.app.github.dev` — that's normal. Each port gets its own subdomain.
+> The forwarded URL looks like `https://<codespace-name>-8090.app.github.dev` — that's normal. Each port gets its own subdomain.
 
 ## Before you start
 

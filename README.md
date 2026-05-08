@@ -31,7 +31,8 @@ We build a small end-to-end data pipeline:
 2. In your fork: **Code → Codespaces → Create codespace on main**.
 3. On first start, Codespaces builds the image and runs `uv sync` (~2–3 min). Kestra adds another ~30–60 s for JVM warmup on first launch.
 4. Once the codespace is ready, these ports are forwarded automatically:
-   - **8080** → Kestra UI (auto-opens in the preview pane)
+   - **8090** → Kestra UI (auto-opens in the preview pane)
+   - **8080** → dbt docs (when you run `dbt docs serve`)
    - **5432** → Postgres
 
 For the full guided path (bronze → silver → gold), see [`tutorial/README.md`](tutorial/README.md).
@@ -92,7 +93,7 @@ Schemas inside the `playground` and `analytics` DBs after `dbt run`:
 
 ## Kestra
 
-UI on port **8080**. The sandbox config has authentication off — you land directly in the dashboard.
+UI on port **8090**. The sandbox config has authentication off — you land directly in the dashboard.
 
 The container mounts the repo's [`flows/`](flows/) directory read-only into `/app/flows`, so any YAML flow you commit shows up automatically in the UI under its declared `namespace`. Kestra's own state (executions, logs, schedules) lives in the `kestra` Postgres database and survives container restarts.
 

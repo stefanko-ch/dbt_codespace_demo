@@ -27,7 +27,7 @@ The Azure SQL credentials are pre-filled as input defaults — you can hit **Exe
 
 ## Step 1 — Open Kestra
 
-In the **Ports** panel of VS Code, click the globe icon next to port **8080** (or use the auto-opened preview tab). On first launch Kestra takes ~30–60 seconds to start (JVM warmup); refresh once you see the dashboard.
+In the **Ports** panel of VS Code, click the globe icon next to port **8090** (or use the auto-opened preview tab). On first launch Kestra takes ~30–60 seconds to start (JVM warmup); refresh once you see the dashboard.
 
 ## Step 2 — Run the example flow
 

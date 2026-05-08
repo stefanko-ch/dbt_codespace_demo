@@ -13,15 +13,19 @@
     },
     "forwardPorts": [
         5432,
+        8090,
         8080
     ],
     "portsAttributes": {
         "5432": {
             "label": "Postgres"
         },
-        "8080": {
+        "8090": {
             "label": "Kestra",
             "onAutoForward": "openPreview"
+        },
+        "8080": {
+            "label": "dbt docs"
         }
     },
     "containerEnv": {
