@@ -7,20 +7,22 @@ Codespace environment for the workshop.
 We build a small end-to-end data pipeline:
 
 ```
- Azure SQL (AdventureWorks)  ──►  n8n  ──►  Postgres (raw)  ──►  dbt  ──►  Postgres (staging → marts)
-       source system          ingest      landing zone     transform        analytics models
+ Azure SQL (AdventureWorks) ──► n8n ──► Postgres (raw) ──► dbt ──► Postgres (staging → marts) ──► Metabase
+       source system         ingest    landing zone   transform        analytics models           BI / dashboards
 ```
 
 - **Source:** the full **AdventureWorks** sample database hosted on Azure SQL (not AdventureWorksLT — we use the complete schema with `Sales`, `Production`, `Person`, `HumanResources`, etc.).
 - **Ingest with n8n:** workflows in n8n connect to Azure SQL using credentials read from Codespace secrets, pull selected tables, and load them into the `raw` schema of the local Postgres.
 - **Transform with dbt:** a dbt project on top of Postgres turns the raw tables into clean staging views and curated marts. DuckDB is wired up as an alternative target for offline experiments.
-- **Everything runs in a Codespace:** Postgres, n8n, and the dbt toolchain are containers in one `docker-compose` stack. Students fork the repo, open it in a Codespace, and have the full environment in a few minutes.
+- **Visualize with Metabase:** Metabase connects to the same Postgres warehouse to explore the marts and build dashboards.
+- **Everything runs in a Codespace:** Postgres, n8n, dbt, and Metabase are containers in one `docker-compose` stack. Students fork the repo, open it in a Codespace, and have the full environment in a few minutes.
 
 ## Stack
 
 - **Postgres 16** as the warehouse
 - **n8n** for workflow automation (uses Postgres as its backing store)
 - **dbt** (Postgres + DuckDB adapters) as a uv-managed Python project
+- **Metabase** for BI and dashboards (uses Postgres as its backing store)
 - VS Code extensions for dbt and SQL, with pre-configured Postgres connections
 
 ## Quickstart
@@ -31,6 +33,7 @@ We build a small end-to-end data pipeline:
 4. On first start, Codespaces builds the image and runs `uv sync` (~2–3 min).
 5. Once the codespace is ready, these ports are forwarded automatically:
    - **5678** → n8n UI (opens automatically in the preview pane)
+   - **3000** → Metabase UI
    - **5432** → Postgres
 
 ## Using dbt
@@ -84,6 +87,21 @@ To let n8n query the warehouse, create a **Postgres** credential in n8n with:
 - Password: `postgres`
 - Port: `5432`
 
+## Metabase
+
+UI on port **3000**. On first visit Metabase walks you through creating an admin account. The Metabase application data (questions, dashboards, users) is stored in the `metabase` database on Postgres and survives container restarts.
+
+To explore the dbt output, add the warehouse as a database in **Settings → Databases → Add database**:
+- Database type: **PostgreSQL**
+- Display name: anything (e.g. `analytics`)
+- Host: `postgres`
+- Port: `5432`
+- Database name: `analytics`
+- Username: `postgres`
+- Password: `postgres`
+
+Once added, Metabase will sync the schemas — `marts.*` is the recommended starting point for dashboards.
+
 ### Azure SQL secrets for n8n
 
 n8n can reach Azure SQL using **Codespaces secrets** — credentials never live in the repo.
@@ -126,9 +144,9 @@ n8n ships with the SQL Server driver out of the box. If a secret is missing, the
 .devcontainer/
   Dockerfile           # Python 3.12 + uv + psql client
   devcontainer.json    # Codespace config (ports, postCreate, extensions)
-  docker-compose.yml   # workspace + postgres + n8n
+  docker-compose.yml   # workspace + postgres + n8n + metabase
   postgres-init/
-    01-init-databases.sh   # creates n8n DB and raw/staging/marts schemas
+    01-init-databases.sh   # creates n8n + metabase DBs and raw/staging/marts schemas
 dbt/
   pyproject.toml       # uv: dbt-core, dbt-postgres, dbt-duckdb
   dbt_project.yml
@@ -141,5 +159,5 @@ dbt/
 
 ## Notes
 
-- Postgres and n8n data persist in Docker volumes (`postgres-data`, `n8n-data`). Stopping the codespace keeps them; deleting the codespace wipes them.
+- Postgres, n8n, and Metabase data persist in Docker volumes (`postgres-data`, `n8n-data`, `metabase-data`). Stopping the codespace keeps them; deleting the codespace wipes them.
 - If `uv sync` fails, run it manually in `dbt/` and open a new terminal.

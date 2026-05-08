@@ -10,7 +10,8 @@
     },
     "forwardPorts": [
         5432,
-        5678
+        5678,
+        3000
     ],
     "portsAttributes": {
         "5432": {
@@ -19,6 +20,9 @@
         "5678": {
             "label": "n8n",
             "onAutoForward": "openPreview"
+        },
+        "3000": {
+            "label": "Metabase"
         }
     },
     "containerEnv": {
