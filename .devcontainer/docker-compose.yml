@@ -57,6 +57,10 @@ services:
       N8N_PROTOCOL: https
       N8N_EDITOR_BASE_URL: https://${CODESPACE_NAME}-5678.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}
       WEBHOOK_URL: https://${CODESPACE_NAME}-5678.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/
+      # Trust one proxy hop (the Codespaces port-forwarding tunnel). Without
+      # this n8n compares the Origin header against the local socket and
+      # rejects requests with "Origin header does not match".
+      N8N_PROXY_HOPS: "1"
       # Allow workflow expressions to read $env.* (forwards Codespace secrets).
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       # Azure SQL credentials forwarded from Codespace secrets.
