@@ -49,6 +49,14 @@ services:
       N8N_SECURE_COOKIE: "false"
       N8N_RUNNERS_ENABLED: "true"
       GENERIC_TIMEZONE: Europe/Zurich
+      # Allow workflow expressions to read $env.* (forwards Codespace secrets).
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      # Azure SQL credentials forwarded from Codespace secrets.
+      # Reference them in n8n credentials as ={{ $env.AZURE_SQL_HOST }} etc.
+      AZURE_SQL_HOST: ${AZURE_SQL_HOST:-}
+      AZURE_SQL_DATABASE: ${AZURE_SQL_DATABASE:-}
+      AZURE_SQL_USER: ${AZURE_SQL_USER:-}
+      AZURE_SQL_PASSWORD: ${AZURE_SQL_PASSWORD:-}
     ports:
       - "5678:5678"
     volumes:

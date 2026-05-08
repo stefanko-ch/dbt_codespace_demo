@@ -1,86 +1,123 @@
 # dbt + n8n + Postgres Codespace Demo
 
-Codespace-Umgebung für den Workshop. Enthält:
+Codespace environment for the workshop. Includes:
 
-- **Postgres 16** als Data Warehouse
-- **n8n** für Workflow-Automation (mit Postgres als Backing Store)
-- **dbt** (Postgres + DuckDB Adapter) als uv-Projekt
-- VS Code Extensions für dbt + SQL
+- **Postgres 16** as the data warehouse
+- **n8n** for workflow automation (with Postgres as backing store)
+- **dbt** (Postgres + DuckDB adapters) as a uv-managed Python project
+- VS Code extensions for dbt and SQL, with pre-configured Postgres connections
 
-## Schnellstart
+## Quickstart
 
-1. Repository auf GitHub forken.
-2. Im Fork: **Code → Codespaces → Create codespace on main**.
-3. Beim ersten Start baut Codespaces das Image und führt `uv sync` aus (~2–3 Min).
-4. Sobald der Codespace bereit ist, sind folgende Ports automatisch geforwarded:
-   - **5678** → n8n UI (öffnet automatisch in der Preview)
+1. Fork the repository on GitHub.
+2. (Optional) Add Azure SQL secrets — see [Azure SQL secrets](#azure-sql-secrets-for-n8n) below.
+3. In your fork: **Code → Codespaces → Create codespace on main**.
+4. On first start, Codespaces builds the image and runs `uv sync` (~2–3 min).
+5. Once the codespace is ready, these ports are forwarded automatically:
+   - **5678** → n8n UI (opens automatically in the preview pane)
    - **5432** → Postgres
 
-## dbt benutzen
+## Using dbt
 
-Die venv wird automatisch aktiviert (über `~/.bashrc`). In einem neuen Terminal:
+The venv is activated automatically (via `~/.bashrc`). In a new terminal:
 
 ```bash
 cd dbt
-dbt debug          # prüft die Postgres-Verbindung
-dbt seed           # lädt Beispiel-CSVs nach raw.*
-dbt run            # baut staging-views und marts-tables
-dbt test           # führt die Tests aus
+dbt debug          # checks the Postgres connection
+dbt seed           # loads the example CSVs into raw.*
+dbt run            # builds staging views and marts tables
+dbt test           # runs the tests
 ```
 
-### Target wechseln (Postgres ↔ DuckDB)
+### Switching targets (Postgres ↔ DuckDB)
 
-Default ist `postgres`. Für lokale DuckDB-Experimente:
+Default is `postgres`. For local DuckDB experiments:
 
 ```bash
 dbt run --target duckdb
 ```
 
-Die DuckDB-Datei landet als `dbt/analytics.duckdb` (ist gitignored).
+The DuckDB file lands at `dbt/analytics.duckdb` (gitignored).
 
-## Postgres direkt abfragen
+## Querying Postgres directly
+
+From the terminal:
 
 ```bash
 psql -h postgres -U postgres -d analytics
-# Passwort: postgres
+# password: postgres
 ```
 
-Schemas nach `dbt run`:
-- `raw` — Seeds
-- `staging` — Views
-- `marts` — Tabellen (z. B. `customer_summary`)
+Or use the **SQLTools** sidebar in VS Code — two connections are pre-configured:
+- `analytics (Postgres)` — the dbt warehouse
+- `n8n (Postgres)` — n8n's backing store
+
+Schemas after `dbt run`:
+- `raw` — seeds
+- `staging` — views
+- `marts` — tables (e.g. `customer_summary`)
 
 ## n8n
 
-UI auf Port **5678**. Beim ersten Aufruf legt n8n einen Owner-Account an. Workflows werden in der `n8n`-DB auf Postgres persistiert (überlebt Container-Neustarts).
+UI on port **5678**. On first visit n8n creates an owner account. Workflows are persisted in the `n8n` database on Postgres (survives container restarts).
 
-Damit n8n auf das Warehouse zugreifen kann, in n8n eine **Postgres**-Credential anlegen mit:
+To let n8n query the warehouse, create a **Postgres** credential in n8n with:
 - Host: `postgres`
 - Database: `analytics`
 - User: `postgres`
 - Password: `postgres`
 - Port: `5432`
 
-## Struktur
+### Azure SQL secrets for n8n
+
+n8n can reach Azure SQL using **Codespaces secrets** — credentials never live in the repo.
+
+**1. Add the secrets in GitHub** (per-user, scoped to this fork):
+
+Go to <https://github.com/settings/codespaces> → **New secret** and create:
+
+| Secret name           | Example value                              |
+| --------------------- | ------------------------------------------ |
+| `AZURE_SQL_HOST`      | `myserver.database.windows.net`            |
+| `AZURE_SQL_DATABASE`  | `mydb`                                     |
+| `AZURE_SQL_USER`      | `sqladmin`                                 |
+| `AZURE_SQL_PASSWORD`  | `…`                                        |
+
+For each secret, grant access to your fork of this repo. Existing codespaces need to be rebuilt (or recreated) to pick up new secrets.
+
+**2. Use them in n8n.** The secrets are forwarded into the n8n container as env vars. In an n8n credential or any expression field, reference them with:
+
+```
+={{ $env.AZURE_SQL_HOST }}
+={{ $env.AZURE_SQL_DATABASE }}
+={{ $env.AZURE_SQL_USER }}
+={{ $env.AZURE_SQL_PASSWORD }}
+```
+
+Use the **Microsoft SQL** node to connect — n8n ships with the driver out of the box. If a secret is missing, the env var is empty and the connection will fail with a clear error.
+
+> Azure SQL firewall: make sure your server allows the Codespace's outbound IP, or enable "Allow Azure services and resources to access this server" if acceptable for your scenario.
+
+## Layout
 
 ```
 .devcontainer/
   Dockerfile           # Python 3.12 + uv + psql client
-  devcontainer.json    # Codespace config (Ports, postCreate, Extensions)
+  devcontainer.json    # Codespace config (ports, postCreate, extensions)
   docker-compose.yml   # workspace + postgres + n8n
   postgres-init/
-    01-init-databases.sh   # legt n8n DB + raw/staging/marts Schemas an
+    01-init-databases.sh   # creates n8n DB and raw/staging/marts schemas
 dbt/
   pyproject.toml       # uv: dbt-core, dbt-postgres, dbt-duckdb
   dbt_project.yml
   profiles.yml         # postgres (default) + duckdb target
   seeds/               # raw_customers.csv, raw_orders.csv
   models/
-    staging/           # stg_customers, stg_orders (Views)
-    marts/             # customer_summary (Table)
+    staging/           # stg_customers, stg_orders (views)
+    marts/             # customer_summary (table)
 ```
 
-## Hinweise
+## Notes
 
-- Daten in Postgres und n8n persistieren in Docker-Volumes (`postgres-data`, `n8n-data`). Beim Stop des Codespaces bleiben sie erhalten; beim Löschen des Codespaces sind sie weg.
-- Wenn `uv sync` fehlschlägt: in `dbt/` manuell `uv sync` ausführen und neues Terminal öffnen.
+- Postgres and n8n data persist in Docker volumes (`postgres-data`, `n8n-data`). Stopping the codespace keeps them; deleting the codespace wipes them.
+- If `uv sync` fails, run it manually in `dbt/` and open a new terminal.

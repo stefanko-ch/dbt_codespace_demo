@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: customer_summary
-    description: "Pro Kunde Anzahl Bestellungen, Umsatz und erstes/letztes Bestelldatum."
+    description: "Per-customer order count, total revenue, and first/last order dates."
     columns:
       - name: customer_id
         tests: [unique, not_null]

@@ -1,6 +1,6 @@
-# Docker Hub statt mcr.microsoft.com, um sporadische AFD-403-Blocks in
-# Codespaces zu vermeiden. Das offizielle Python-Image ist Debian-basiert,
-# daher funktionieren die apt-Schritte unverändert.
+# Docker Hub instead of mcr.microsoft.com to avoid the occasional AFD 403
+# blocks that hit Codespaces. The official Python image is Debian-based,
+# so the apt steps below are unchanged.
 FROM python:3.12-bookworm
 
 RUN apt-get update \
