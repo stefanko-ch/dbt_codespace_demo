@@ -15,7 +15,8 @@
         5432,
         8090,
         8080,
-        3000
+        3000,
+        8888
     ],
     "portsAttributes": {
         "5432": {
@@ -30,12 +31,15 @@
         },
         "3000": {
             "label": "Metabase"
+        },
+        "8888": {
+            "label": "Jupyter Lab"
         }
     },
     "containerEnv": {
         "DBT_PROFILES_DIR": "${containerWorkspaceFolder}/dbt"
     },
-    "postCreateCommand": "cd dbt && uv sync && (grep -q 'dbt/.venv/bin/activate' /root/.bashrc || echo \"source ${containerWorkspaceFolder}/dbt/.venv/bin/activate\" >> /root/.bashrc)",
+    "postCreateCommand": "bash .devcontainer/post-create.sh",
     "customizations": {
         "vscode": {
             "settings": {
@@ -94,6 +98,8 @@
             "extensions": [
                 "ms-python.python",
                 "ms-python.vscode-pylance",
+                "ms-toolsai.jupyter",
+                "mechatroner.rainbow-csv",
                 "innoverio.vscode-dbt-power-user",
                 "mtxr.sqltools",
                 "mtxr.sqltools-driver-pg"
