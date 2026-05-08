@@ -98,7 +98,8 @@ tasks:
           FROM Production.ProductCategory
 
     tasks:
-      # Step 1: query Azure SQL, write the rows to a CSV file in Kestra storage.
+      # Step 1: query Azure SQL, write the rows to Kestra's internal storage
+      # as an ION file (Kestra's default serialization for tabular data).
       - id: query_source
         type: io.kestra.plugin.jdbc.sqlserver.Query
         url: "{{ vars.source_url }}"
@@ -107,13 +108,18 @@ tasks:
         sql: "{{ taskrun.value.select }}"
         fetchType: STORE
 
-      # Step 2: bulk-load that CSV into the matching Postgres bronze table.
+      # Step 2: convert the ION file to CSV so Postgres COPY can read it.
+      - id: to_csv
+        type: io.kestra.plugin.serdes.csv.IonToCsv
+        from: "{{ outputs.query_source.uri }}"
+
+      # Step 3: bulk-load the CSV into the matching Postgres bronze table.
       - id: copy_to_bronze
         type: io.kestra.plugin.jdbc.postgresql.CopyIn
         url: "{{ vars.target_url }}"
         username: postgres
         password: postgres
-        from: "{{ outputs.query_source.uri }}"
+        from: "{{ outputs.to_csv.uri }}"
         table: "raw.{{ taskrun.value.target }}"
         format: CSV
         header: true
