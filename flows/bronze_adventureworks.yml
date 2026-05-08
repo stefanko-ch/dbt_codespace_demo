@@ -1,125 +1,92 @@
 id: bronze_adventureworks
 namespace: workshop
 description: |
-  Ingest selected AdventureWorks tables from Azure SQL into the local
-  Postgres `analytics.raw.*` schema. Source tables are queried with
-  explicit column lists (snake_case aliases) so that Postgres COPY
-  positionally maps them onto the bronze tables created by
-  `tutorial/sql/01_create_bronze_tables.sql`.
+  Worked example: ingest ONE AdventureWorks table (`Sales.Customer`) from
+  Azure SQL into the local Postgres `analytics.raw.customer`. Use this as
+  a template to add the remaining 8 tables yourself.
 
-  Run from the Kestra UI: open the flow, click "Execute", paste the
-  Azure SQL credentials, and watch the ForEach fan out across all 9
-  tables in parallel.
+  The flow is self-contained:
+    1. prepare_schema -- CREATE the bronze table if it doesn't exist,
+       then TRUNCATE so re-runs are clean reloads.
+    2. query_source   -- SELECT from Azure SQL, store the result as ION
+       in Kestra's internal storage.
+    3. insert_into_bronze -- Postgres.Batch reads the ION rows and runs
+       a parameterized INSERT row-by-row. No CSV detour.
+
+  Pre-filled inputs let you click "Execute" without typing.
+
+  Tables you still need to add (see the "Your turn" section in
+  tutorial/01-bronze-kestra.md for the full list and column projections):
+    - Sales.SalesOrderHeader
+    - Sales.SalesOrderDetail
+    - Person.Person
+    - Sales.SalesTerritory
+    - Sales.SalesPerson
+    - Production.Product
+    - Production.ProductSubcategory
+    - Production.ProductCategory
 
 inputs:
   - id: azure_sql_host
     type: STRING
-    description: "e.g. myserver.database.windows.net"
+    defaults: nonacomp-sql.database.windows.net
   - id: azure_sql_database
     type: STRING
     defaults: AdventureWorks
   - id: azure_sql_user
     type: STRING
+    defaults: bia21
   - id: azure_sql_password
     type: STRING
-    description: "SQL Server password"
+    defaults: this_is_a_very_UNSECURE_Password_123!
 
 variables:
   source_url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;database={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net"
   target_url: "jdbc:postgresql://postgres:5432/analytics"
 
 tasks:
-  - id: ingest_tables
-    type: io.kestra.plugin.core.flow.ForEach
-    concurrencyLimit: 3
-    values:
-      - target: sales_order_header
-        select: |
-          SELECT
-            SalesOrderID, RevisionNumber, OrderDate, DueDate, ShipDate, Status,
-            OnlineOrderFlag, SalesOrderNumber, PurchaseOrderNumber, AccountNumber,
-            CustomerID, SalesPersonID, TerritoryID, BillToAddressID, ShipToAddressID,
-            ShipMethodID, CreditCardID, CurrencyRateID, SubTotal, TaxAmt, Freight,
-            TotalDue, Comment, ModifiedDate
-          FROM Sales.SalesOrderHeader
+  # Step 1: ensure schema + bronze table exist, then truncate so each run
+  # is a clean reload. Idempotent.
+  - id: prepare_schema
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ vars.target_url }}"
+    username: postgres
+    password: postgres
+    sql: |
+      CREATE SCHEMA IF NOT EXISTS raw;
 
-      - target: sales_order_detail
-        select: |
-          SELECT
-            SalesOrderID, SalesOrderDetailID, CarrierTrackingNumber, OrderQty,
-            ProductID, SpecialOfferID, UnitPrice, UnitPriceDiscount, LineTotal,
-            ModifiedDate
-          FROM Sales.SalesOrderDetail
+      CREATE TABLE IF NOT EXISTS raw.customer (
+        customer_id    INTEGER PRIMARY KEY,
+        person_id      INTEGER,
+        store_id       INTEGER,
+        territory_id   INTEGER,
+        account_number TEXT,
+        modified_date  TIMESTAMP
+      );
 
-      - target: customer
-        select: |
-          SELECT CustomerID, PersonID, StoreID, TerritoryID, AccountNumber, ModifiedDate
-          FROM Sales.Customer
+      TRUNCATE raw.customer;
 
-      - target: person
-        select: |
-          SELECT
-            BusinessEntityID, PersonType, NameStyle, Title, FirstName, MiddleName,
-            LastName, Suffix, EmailPromotion, ModifiedDate
-          FROM Person.Person
+  # Step 2: pull the source rows, store as ION in Kestra's internal storage.
+  # Column ORDER here must match the placeholder order in the INSERT below,
+  # since Postgres.Batch binds positionally.
+  - id: query_source
+    type: io.kestra.plugin.jdbc.sqlserver.Query
+    url: "{{ vars.source_url }}"
+    username: "{{ inputs.azure_sql_user }}"
+    password: "{{ inputs.azure_sql_password }}"
+    fetchType: STORE
+    sql: |
+      SELECT CustomerID, PersonID, StoreID, TerritoryID, AccountNumber, ModifiedDate
+      FROM Sales.Customer
 
-      - target: sales_territory
-        select: |
-          SELECT
-            TerritoryID, Name, CountryRegionCode, [Group], SalesYTD, SalesLastYear,
-            CostYTD, CostLastYear, ModifiedDate
-          FROM Sales.SalesTerritory
-
-      - target: sales_person
-        select: |
-          SELECT
-            BusinessEntityID, TerritoryID, SalesQuota, Bonus, CommissionPct,
-            SalesYTD, SalesLastYear, ModifiedDate
-          FROM Sales.SalesPerson
-
-      - target: product
-        select: |
-          SELECT
-            ProductID, Name, ProductNumber, MakeFlag, FinishedGoodsFlag, Color,
-            SafetyStockLevel, ReorderPoint, StandardCost, ListPrice, Size,
-            SizeUnitMeasureCode, WeightUnitMeasureCode, Weight, DaysToManufacture,
-            ProductLine, Class, Style, ProductSubcategoryID, ProductModelID,
-            SellStartDate, SellEndDate, DiscontinuedDate, ModifiedDate
-          FROM Production.Product
-
-      - target: product_subcategory
-        select: |
-          SELECT ProductSubcategoryID, ProductCategoryID, Name, ModifiedDate
-          FROM Production.ProductSubcategory
-
-      - target: product_category
-        select: |
-          SELECT ProductCategoryID, Name, ModifiedDate
-          FROM Production.ProductCategory
-
-    tasks:
-      # Step 1: query Azure SQL, write the rows to Kestra's internal storage
-      # as an ION file (Kestra's default serialization for tabular data).
-      - id: query_source
-        type: io.kestra.plugin.jdbc.sqlserver.Query
-        url: "{{ vars.source_url }}"
-        username: "{{ inputs.azure_sql_user }}"
-        password: "{{ inputs.azure_sql_password }}"
-        sql: "{{ taskrun.value.select }}"
-        fetchType: STORE
-
-      # Step 2: convert the ION file to CSV so Postgres COPY can read it.
-      - id: to_csv
-        type: io.kestra.plugin.serdes.csv.IonToCsv
-        from: "{{ outputs.query_source.uri }}"
-
-      # Step 3: bulk-load the CSV into the matching Postgres bronze table.
-      - id: copy_to_bronze
-        type: io.kestra.plugin.jdbc.postgresql.CopyIn
-        url: "{{ vars.target_url }}"
-        username: postgres
-        password: postgres
-        from: "{{ outputs.to_csv.uri }}"
-        table: "raw.{{ taskrun.value.target }}"
-        format: CSV
-        header: true
+  # Step 3: stream the ION file into Postgres via parameterized INSERT.
+  - id: insert_into_bronze
+    type: io.kestra.plugin.jdbc.postgresql.Batch
+    url: "{{ vars.target_url }}"
+    username: postgres
+    password: postgres
+    from: "{{ outputs.query_source.uri }}"
+    sql: |
+      INSERT INTO raw.customer (
+        customer_id, person_id, store_id, territory_id, account_number, modified_date
+      ) VALUES (?, ?, ?, ?, ?, ?)
