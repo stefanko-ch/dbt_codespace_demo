@@ -48,7 +48,7 @@ tasks:
   # Step 1: ensure schema + bronze table exist, then truncate so each run
   # is a clean reload. Idempotent.
   - id: prepare_schema
-    type: io.kestra.plugin.jdbc.postgresql.Query
+    type: io.kestra.plugin.jdbc.postgresql.Queries
     url: "{{ vars.target_url }}"
     username: postgres
     password: postgres
