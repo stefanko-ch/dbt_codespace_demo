@@ -1,15 +1,32 @@
-analytics:
-  target: postgres
+dbt_codespace_demo:
+  target: playground
   outputs:
-    postgres:
+
+    # Library warm-up example. Lives in its own DB so it stays isolated from
+    # the n8n / AdventureWorks pipeline. This is the default target.
+    playground:
       type: postgres
       host: "{{ env_var('POSTGRES_HOST', 'postgres') }}"
       port: "{{ env_var('POSTGRES_PORT', '5432') | int }}"
       user: "{{ env_var('POSTGRES_USER', 'postgres') }}"
       password: "{{ env_var('POSTGRES_PASSWORD', 'postgres') }}"
-      dbname: "{{ env_var('POSTGRES_DB', 'analytics') }}"
+      dbname: playground
       schema: public
       threads: 4
+
+    # Real warehouse: receives AdventureWorks data ingested by n8n.
+    analytics:
+      type: postgres
+      host: "{{ env_var('POSTGRES_HOST', 'postgres') }}"
+      port: "{{ env_var('POSTGRES_PORT', '5432') | int }}"
+      user: "{{ env_var('POSTGRES_USER', 'postgres') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD', 'postgres') }}"
+      dbname: analytics
+      schema: public
+      threads: 4
+
+    # File-based DuckDB target for offline experiments. The .duckdb file is
+    # gitignored.
     duckdb:
       type: duckdb
       path: "{{ env_var('DUCKDB_PATH', 'analytics.duckdb') }}"

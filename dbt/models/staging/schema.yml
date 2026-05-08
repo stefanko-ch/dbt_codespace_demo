@@ -1,18 +1,29 @@
 version: 2
 
 models:
-  - name: stg_customers
+  - name: stg_books
     columns:
-      - name: customer_id
+      - name: book_id
         tests: [unique, not_null]
 
-  - name: stg_orders
+  - name: stg_members
     columns:
-      - name: order_id
+      - name: member_id
         tests: [unique, not_null]
-      - name: customer_id
+
+  - name: stg_loans
+    columns:
+      - name: loan_id
+        tests: [unique, not_null]
+      - name: book_id
         tests:
           - not_null
           - relationships:
-              to: ref('stg_customers')
-              field: customer_id
+              to: ref('stg_books')
+              field: book_id
+      - name: member_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_members')
+              field: member_id

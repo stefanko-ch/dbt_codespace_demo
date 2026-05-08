@@ -1,8 +1,14 @@
 version: 2
 
 models:
-  - name: customer_summary
-    description: "Per-customer order count, total revenue, and first/last order dates."
+  - name: book_popularity
+    description: "Per-book loan count, unique borrowers, total days borrowed, last loan date."
     columns:
-      - name: customer_id
+      - name: book_id
+        tests: [unique, not_null]
+
+  - name: member_activity
+    description: "Per-member loan count, open loans, average loan duration, last loan date."
+    columns:
+      - name: member_id
         tests: [unique, not_null]

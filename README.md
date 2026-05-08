@@ -19,11 +19,12 @@ We build a small end-to-end data pipeline:
 
 ## Stack
 
-- **Postgres 16** as the warehouse
-- **n8n** for workflow automation (uses Postgres as its backing store)
-- **dbt** (Postgres + DuckDB adapters) as a uv-managed Python project
-- **Metabase** for BI and dashboards (uses Postgres as its backing store)
-- VS Code extensions for dbt and SQL, with pre-configured Postgres connections
+- **Postgres 16** as the warehouse, with three DBs: `analytics` (AdventureWorks target), `playground` (dbt warm-up), `n8n` and `metabase` (backing stores)
+- **n8n** for workflow automation
+- **dbt** (Postgres + DuckDB adapters) as a uv-managed Python project, with named targets for `playground` (default) and `analytics`
+- **Metabase** for BI and dashboards
+- VS Code extensions: dbt Power User and Database Client (Weijan) for browsing/querying Postgres
+- `docker` CLI available inside the workspace (via docker-outside-of-docker) for `docker logs`, `docker exec`, etc.
 
 ## Quickstart
 
@@ -48,33 +49,55 @@ dbt run            # builds staging views and marts tables
 dbt test           # runs the tests
 ```
 
-### Switching targets (Postgres ↔ DuckDB)
+### Library warm-up (default target: `playground`)
 
-Default is `postgres`. For local DuckDB experiments:
+The repo ships a small **library domain** example so the toolchain is verifiable on day one without depending on n8n or AdventureWorks:
+
+- Seeds: `raw_books`, `raw_members`, `raw_loans`
+- Staging: `stg_books`, `stg_members`, `stg_loans`
+- Marts: `book_popularity`, `member_activity`
+
+These are written into the **`playground`** Postgres database (separate from `analytics`, so the warm-up never collides with the AdventureWorks pipeline). The default target in `profiles.yml` points there, so `dbt seed && dbt run && dbt test` just works.
+
+### Switching targets
+
+`dbt/profiles.yml` defines three named outputs:
+
+| Target       | Backend          | Use case                                                    |
+| ------------ | ---------------- | ----------------------------------------------------------- |
+| `playground` | Postgres `playground` DB | **default** — library warm-up                       |
+| `analytics`  | Postgres `analytics` DB  | the real project against AdventureWorks data ingested by n8n |
+| `duckdb`     | local file       | offline experiments                                          |
 
 ```bash
-dbt run --target duckdb
+dbt run                       # default → playground
+dbt run --target analytics    # against the analytics warehouse
+dbt run --target duckdb       # writes ./analytics.duckdb (gitignored)
 ```
-
-The DuckDB file lands at `dbt/analytics.duckdb` (gitignored).
 
 ## Querying Postgres directly
 
 From the terminal:
 
 ```bash
-psql -h postgres -U postgres -d analytics
-# password: postgres
+psql                                    # drops into the playground DB by default
+psql -d analytics                       # switch DB (or any of: n8n, metabase)
 ```
 
-Or use the **SQLTools** sidebar in VS Code — two connections are pre-configured:
-- `analytics (Postgres)` — the dbt warehouse
-- `n8n (Postgres)` — n8n's backing store
+Or use the **Database Client** sidebar in VS Code (icon shaped like a cylinder). On first launch, click **+ Add** and create a PostgreSQL connection with:
 
-Schemas after `dbt run`:
-- `raw` — seeds
+- Host: `postgres`
+- Port: `5432`
+- User: `postgres`
+- Password: `postgres`
+- Default database: any (the tree exposes all four)
+
+The tree view lets you browse `analytics`, `playground`, `n8n`, and `metabase` side by side, run queries, edit table data inline, and view ER diagrams.
+
+Schemas inside the `playground` and `analytics` DBs after `dbt run`:
+- `raw` — seeds / ingested tables
 - `staging` — views
-- `marts` — tables (e.g. `customer_summary`)
+- `marts` — tables
 
 ## n8n
 
@@ -143,18 +166,18 @@ n8n ships with the SQL Server driver out of the box. If a secret is missing, the
 ```
 .devcontainer/
   Dockerfile           # Python 3.12 + uv + psql client
-  devcontainer.json    # Codespace config (ports, postCreate, extensions)
+  devcontainer.json    # Codespace config (ports, postCreate, extensions, docker-in-docker)
   docker-compose.yml   # workspace + postgres + n8n + metabase
   postgres-init/
-    01-init-databases.sh   # creates n8n + metabase DBs and raw/staging/marts schemas
+    01-init-databases.sh   # creates n8n / metabase / playground DBs and raw/staging/marts schemas
 dbt/
   pyproject.toml       # uv: dbt-core, dbt-postgres, dbt-duckdb
   dbt_project.yml
-  profiles.yml         # postgres (default) + duckdb target
-  seeds/               # raw_customers.csv, raw_orders.csv
+  profiles.yml         # playground (default) + analytics + duckdb targets
+  seeds/               # raw_books.csv, raw_members.csv, raw_loans.csv (library warm-up)
   models/
-    staging/           # stg_customers, stg_orders (views)
-    marts/             # customer_summary (table)
+    staging/           # stg_books, stg_members, stg_loans (views)
+    marts/             # book_popularity, member_activity (tables)
 ```
 
 ## Notes

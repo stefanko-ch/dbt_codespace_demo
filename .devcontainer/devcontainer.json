@@ -8,6 +8,9 @@
         "memory": "8gb",
         "storage": "32gb"
     },
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    },
     "forwardPorts": [
         5432,
         5678,
@@ -36,38 +39,13 @@
                 "python.terminal.activateEnvironment": true,
                 "[sql]": {
                     "editor.defaultFormatter": "innoverio.vscode-dbt-power-user"
-                },
-                "sqltools.connections": [
-                    {
-                        "name": "analytics (Postgres)",
-                        "driver": "PostgreSQL",
-                        "server": "postgres",
-                        "port": 5432,
-                        "database": "analytics",
-                        "username": "postgres",
-                        "password": "postgres",
-                        "askForPassword": false,
-                        "previewLimit": 50
-                    },
-                    {
-                        "name": "n8n (Postgres)",
-                        "driver": "PostgreSQL",
-                        "server": "postgres",
-                        "port": 5432,
-                        "database": "n8n",
-                        "username": "postgres",
-                        "password": "postgres",
-                        "askForPassword": false,
-                        "previewLimit": 50
-                    }
-                ]
+                }
             },
             "extensions": [
                 "ms-python.python",
                 "ms-python.vscode-pylance",
                 "innoverio.vscode-dbt-power-user",
-                "mtxr.sqltools",
-                "mtxr.sqltools-driver-pg"
+                "cweijan.vscode-database-client2"
             ]
         }
     }
