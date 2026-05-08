@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 750" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <style>
+      .fact         { fill: #fff7ed; stroke: #ea580c; stroke-width: 2.5; }
+      .fact-title   { font-size: 18px; font-weight: 700; fill: #ea580c; }
+      .dim          { fill: #eff6ff; stroke: #2563eb; stroke-width: 2; }
+      .dim-title    { font-size: 16px; font-weight: 700; fill: #2563eb; }
+      .col-pk       { font-size: 12px; font-weight: 700; fill: #111827; }
+      .col          { font-size: 12px; fill: #374151; }
+      .meta         { font-size: 12px; fill: #6b7280; font-style: italic; }
+      .grain        { font-size: 12px; fill: #9a3412; }
+      .link         { stroke: #6b7280; stroke-width: 1.5; fill: none; }
+      .fk           { font-size: 11px; fill: #4b5563; font-weight: 600; }
+      .heading      { font-size: 16px; font-weight: 700; fill: #111827; }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text class="heading" x="550" y="32" text-anchor="middle">analytics.marts &#8212; star schema</text>
+
+  <!-- Connectors (drawn first so boxes cover endpoints) -->
+  <!-- dim_date (top) -->
+  <line class="link" x1="550" y1="135" x2="550" y2="320"/>
+  <text class="fk" x="565" y="225" text-anchor="start">date_key</text>
+
+  <!-- dim_customer (top-right) -->
+  <line class="link" x1="760" y1="240" x2="935" y2="195"/>
+  <text class="fk" x="848" y="210" text-anchor="middle">customer_key</text>
+
+  <!-- dim_product (bottom-right) -->
+  <line class="link" x1="760" y1="490" x2="935" y2="540"/>
+  <text class="fk" x="848" y="535" text-anchor="middle">product_key</text>
+
+  <!-- dim_sales_person (bottom-left) -->
+  <line class="link" x1="340" y1="490" x2="165" y2="540"/>
+  <text class="fk" x="252" y="535" text-anchor="middle">sales_person_key</text>
+
+  <!-- dim_sales_territory (top-left) -->
+  <line class="link" x1="340" y1="240" x2="165" y2="195"/>
+  <text class="fk" x="252" y="210" text-anchor="middle">territory_key</text>
+
+  <!-- ============= Fact (center) ============= -->
+  <g>
+    <rect class="fact" x="340" y="320" width="420" height="170" rx="10"/>
+    <text class="fact-title" x="550" y="350" text-anchor="middle">fact_sales</text>
+    <text class="grain"      x="550" y="370" text-anchor="middle">grain: one row per order line item</text>
+
+    <text class="col-pk" x="365" y="398">FK</text>
+    <text class="col"    x="395" y="398">date_key</text>
+    <text class="col"    x="395" y="414">customer_key</text>
+    <text class="col"    x="395" y="430">product_key</text>
+    <text class="col"    x="395" y="446">territory_key</text>
+    <text class="col"    x="395" y="462">sales_person_key</text>
+
+    <text class="col-pk" x="585" y="398">M</text>
+    <text class="col"    x="610" y="398">order_qty</text>
+    <text class="col"    x="610" y="414">unit_price</text>
+    <text class="col"    x="610" y="430">unit_price_discount</text>
+    <text class="col"    x="610" y="446">line_total</text>
+    <text class="col"    x="610" y="462">net_amount</text>
+    <text class="meta"   x="610" y="478">+ degenerate dims</text>
+  </g>
+
+  <!-- ============= dim_date (top) ============= -->
+  <g>
+    <rect class="dim" x="430" y="60" width="240" height="115" rx="8"/>
+    <text class="dim-title" x="550" y="85" text-anchor="middle">dim_date</text>
+    <text class="col-pk" x="450" y="108">PK</text>
+    <text class="col"    x="475" y="108">date_key</text>
+    <text class="col"    x="475" y="124">date_actual</text>
+    <text class="col"    x="475" y="140">year, quarter, month</text>
+    <text class="col"    x="475" y="156">month_name, iso_week</text>
+  </g>
+
+  <!-- ============= dim_customer (top-right) ============= -->
+  <g>
+    <rect class="dim" x="815" y="120" width="240" height="125" rx="8"/>
+    <text class="dim-title" x="935" y="145" text-anchor="middle">dim_customer</text>
+    <text class="col-pk" x="835" y="168">PK</text>
+    <text class="col"    x="860" y="168">customer_key</text>
+    <text class="col"    x="860" y="184">customer_id</text>
+    <text class="col"    x="860" y="200">customer_name</text>
+    <text class="col"    x="860" y="216">customer_type</text>
+    <text class="col"    x="860" y="232">territory_id, store_id</text>
+  </g>
+
+  <!-- ============= dim_product (bottom-right) ============= -->
+  <g>
+    <rect class="dim" x="815" y="490" width="240" height="135" rx="8"/>
+    <text class="dim-title" x="935" y="515" text-anchor="middle">dim_product</text>
+    <text class="col-pk" x="835" y="538">PK</text>
+    <text class="col"    x="860" y="538">product_key</text>
+    <text class="col"    x="860" y="554">product_id</text>
+    <text class="col"    x="860" y="570">product_name, color</text>
+    <text class="col"    x="860" y="586">subcategory_name</text>
+    <text class="col"    x="860" y="602">category_name</text>
+    <text class="col"    x="860" y="618">list_price, is_active</text>
+  </g>
+
+  <!-- ============= dim_sales_person (bottom-left) ============= -->
+  <g>
+    <rect class="dim" x="45" y="490" width="240" height="125" rx="8"/>
+    <text class="dim-title" x="165" y="515" text-anchor="middle">dim_sales_person</text>
+    <text class="col-pk" x="65" y="538">PK</text>
+    <text class="col"    x="90" y="538">sales_person_key</text>
+    <text class="col"    x="90" y="554">sales_person_id</text>
+    <text class="col"    x="90" y="570">sales_person_name</text>
+    <text class="col"    x="90" y="586">territory_id</text>
+    <text class="col"    x="90" y="602">sales_quota, commission_pct</text>
+  </g>
+
+  <!-- ============= dim_sales_territory (top-left) ============= -->
+  <g>
+    <rect class="dim" x="45" y="120" width="240" height="125" rx="8"/>
+    <text class="dim-title" x="165" y="145" text-anchor="middle">dim_sales_territory</text>
+    <text class="col-pk" x="65" y="168">PK</text>
+    <text class="col"    x="90" y="168">territory_key</text>
+    <text class="col"    x="90" y="184">territory_id</text>
+    <text class="col"    x="90" y="200">territory_name</text>
+    <text class="col"    x="90" y="216">country_region_code</text>
+    <text class="col"    x="90" y="232">region_group</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(40, 700)">
+    <rect width="14" height="14" class="fact"/>
+    <text class="col" x="22" y="12">fact (orange) &#8212; one row per measurable event</text>
+    <rect width="14" height="14" class="dim" x="350"/>
+    <text class="col" x="372" y="12">dimension (blue) &#8212; descriptive context for the fact</text>
+  </g>
+</svg>
