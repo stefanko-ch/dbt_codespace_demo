@@ -42,7 +42,6 @@ inputs:
 
 variables:
   target_url: "jdbc:postgresql://postgres:5432/analytics"
-  source_url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;databaseName={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=true;loginTimeout=30"
 
 tasks:
   # ---------------------------------------------------------------------------
@@ -199,7 +198,7 @@ tasks:
   # ---------------------------------------------------------------------------
   - id: query_source_customer
     type: io.kestra.plugin.jdbc.sqlserver.Query
-    url: "{{ vars.source_url }}"
+    url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;databaseName={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=true;loginTimeout=30"
     username: "{{ inputs.azure_sql_user }}"
     password: "{{ inputs.azure_sql_password }}"
     fetchType: STORE
@@ -223,7 +222,7 @@ tasks:
   # ---------------------------------------------------------------------------
   - id: query_source_sales_order_header
     type: io.kestra.plugin.jdbc.sqlserver.Query
-    url: "{{ vars.source_url }}"
+    url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;databaseName={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=true;loginTimeout=30"
     username: "{{ inputs.azure_sql_user }}"
     password: "{{ inputs.azure_sql_password }}"
     fetchType: STORE
@@ -255,7 +254,7 @@ tasks:
   # ---------------------------------------------------------------------------
   - id: query_source_sales_order_detail
     type: io.kestra.plugin.jdbc.sqlserver.Query
-    url: "{{ vars.source_url }}"
+    url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;databaseName={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=true;loginTimeout=30"
     username: "{{ inputs.azure_sql_user }}"
     password: "{{ inputs.azure_sql_password }}"
     fetchType: STORE
@@ -283,7 +282,7 @@ tasks:
   # ---------------------------------------------------------------------------
   - id: query_source_person
     type: io.kestra.plugin.jdbc.sqlserver.Query
-    url: "{{ vars.source_url }}"
+    url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;databaseName={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=true;loginTimeout=30"
     username: "{{ inputs.azure_sql_user }}"
     password: "{{ inputs.azure_sql_password }}"
     fetchType: STORE
@@ -309,7 +308,7 @@ tasks:
   # ---------------------------------------------------------------------------
   - id: query_source_sales_territory
     type: io.kestra.plugin.jdbc.sqlserver.Query
-    url: "{{ vars.source_url }}"
+    url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;databaseName={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=true;loginTimeout=30"
     username: "{{ inputs.azure_sql_user }}"
     password: "{{ inputs.azure_sql_password }}"
     fetchType: STORE
@@ -335,7 +334,7 @@ tasks:
   # ---------------------------------------------------------------------------
   - id: query_source_sales_person
     type: io.kestra.plugin.jdbc.sqlserver.Query
-    url: "{{ vars.source_url }}"
+    url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;databaseName={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=true;loginTimeout=30"
     username: "{{ inputs.azure_sql_user }}"
     password: "{{ inputs.azure_sql_password }}"
     fetchType: STORE
@@ -361,7 +360,7 @@ tasks:
   # ---------------------------------------------------------------------------
   - id: query_source_product
     type: io.kestra.plugin.jdbc.sqlserver.Query
-    url: "{{ vars.source_url }}"
+    url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;databaseName={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=true;loginTimeout=30"
     username: "{{ inputs.azure_sql_user }}"
     password: "{{ inputs.azure_sql_password }}"
     fetchType: STORE
@@ -393,7 +392,7 @@ tasks:
   # ---------------------------------------------------------------------------
   - id: query_source_product_subcategory
     type: io.kestra.plugin.jdbc.sqlserver.Query
-    url: "{{ vars.source_url }}"
+    url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;databaseName={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=true;loginTimeout=30"
     username: "{{ inputs.azure_sql_user }}"
     password: "{{ inputs.azure_sql_password }}"
     fetchType: STORE
@@ -417,7 +416,7 @@ tasks:
   # ---------------------------------------------------------------------------
   - id: query_source_product_category
     type: io.kestra.plugin.jdbc.sqlserver.Query
-    url: "{{ vars.source_url }}"
+    url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;databaseName={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=true;loginTimeout=30"
     username: "{{ inputs.azure_sql_user }}"
     password: "{{ inputs.azure_sql_password }}"
     fetchType: STORE
