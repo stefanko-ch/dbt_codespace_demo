@@ -36,43 +36,42 @@ services:
       timeout: 5s
       retries: 10
 
-  n8n:
-    image: n8nio/n8n:latest
+  kestra:
+    image: kestra/kestra:latest
     restart: unless-stopped
+    user: "root"
+    command: server standalone --worker-thread=8
     environment:
-      DB_TYPE: postgresdb
-      DB_POSTGRESDB_HOST: postgres
-      DB_POSTGRESDB_PORT: 5432
-      DB_POSTGRESDB_DATABASE: n8n
-      DB_POSTGRESDB_USER: postgres
-      DB_POSTGRESDB_PASSWORD: postgres
-      N8N_SECURE_COOKIE: "false"
-      GENERIC_TIMEZONE: Europe/Zurich
-      # Tell n8n the public URL it is reached on. Codespaces forwards each
-      # port at https://<codespace-name>-<port>.<domain>. CODESPACE_NAME and
-      # GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN are injected by Codespaces.
-      # Without these, n8n's origin check blocks UI calls (workflow execution,
-      # credentials test, etc.) with "Origin header does not match".
-      N8N_HOST: ${CODESPACE_NAME}-5678.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}
-      N8N_PROTOCOL: https
-      N8N_EDITOR_BASE_URL: https://${CODESPACE_NAME}-5678.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}
-      WEBHOOK_URL: https://${CODESPACE_NAME}-5678.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}/
-      # Trust one proxy hop (the Codespaces port-forwarding tunnel). Without
-      # this n8n compares the Origin header against the local socket and
-      # rejects requests with "Origin header does not match".
-      N8N_PROXY_HOPS: "1"
-      # Allow workflow expressions to read $env.* (forwards Codespace secrets).
-      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
-      # Azure SQL credentials forwarded from Codespace secrets.
-      # Reference them in n8n credentials as ={{ $env.AZURE_SQL_HOST }} etc.
-      AZURE_SQL_HOST: ${AZURE_SQL_HOST:-}
-      AZURE_SQL_DATABASE: ${AZURE_SQL_DATABASE:-}
-      AZURE_SQL_USER: ${AZURE_SQL_USER:-}
-      AZURE_SQL_PASSWORD: ${AZURE_SQL_PASSWORD:-}
+      # Inline Micronaut config: Postgres backend (state, queue, repository)
+      # and local filesystem internal storage (execution outputs, temp files).
+      KESTRA_CONFIGURATION: |
+        datasources:
+          postgres:
+            url: jdbc:postgresql://postgres:5432/kestra
+            driverClassName: org.postgresql.Driver
+            username: postgres
+            password: postgres
+        kestra:
+          server:
+            basicAuth:
+              enabled: false
+          repository:
+            type: postgres
+          queue:
+            type: postgres
+          storage:
+            type: local
+            local:
+              basePath: "/app/storage"
+        micronaut:
+          server:
+            forward-headers-enabled: true
     ports:
-      - "5678:5678"
+      - "8080:8080"
     volumes:
-      - n8n-data:/home/node/.n8n
+      - kestra-data:/app/storage
+      - ../flows:/app/flows:ro
+      - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,5 +96,5 @@ services:
 
 volumes:
   postgres-data:
-  n8n-data:
+  kestra-data:
   metabase-data:

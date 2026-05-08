@@ -13,15 +13,15 @@
     },
     "forwardPorts": [
         5432,
-        5678,
+        8080,
         3000
     ],
     "portsAttributes": {
         "5432": {
             "label": "Postgres"
         },
-        "5678": {
-            "label": "n8n",
+        "8080": {
+            "label": "Kestra",
             "onAutoForward": "openPreview"
         },
         "3000": {

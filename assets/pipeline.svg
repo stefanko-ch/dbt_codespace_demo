@@ -10,8 +10,8 @@
       .layer      { font-size: 11px; fill: #6e7781; font-weight: 600; letter-spacing: 0.5px; }
       .azure      { stroke: #0078d4; }
       .azure-fg   { fill: #0078d4; }
-      .n8n        { stroke: #ea4b71; }
-      .n8n-fg     { fill: #ea4b71; }
+      .kestra     { stroke: #6366f1; }
+      .kestra-fg  { fill: #6366f1; }
       .pg         { stroke: #336791; }
       .pg-fg      { fill: #336791; }
       .dbt        { stroke: #ff694a; }
@@ -31,12 +31,12 @@
   </g>
   <line x1="190" y1="95" x2="208" y2="95" stroke="#6e7781" stroke-width="2" marker-end="url(#arrow)"/>
 
-  <!-- n8n -->
+  <!-- Kestra -->
   <g>
-    <rect class="box n8n" x="215" y="50" width="160" height="90" rx="8"/>
-    <text class="tool n8n-fg" x="295" y="80" text-anchor="middle">n8n</text>
-    <text class="desc" x="295" y="102" text-anchor="middle">Execute SQL →</text>
-    <text class="desc" x="295" y="120" text-anchor="middle">Insert rows</text>
+    <rect class="box kestra" x="215" y="50" width="160" height="90" rx="8"/>
+    <text class="tool kestra-fg" x="295" y="80" text-anchor="middle">Kestra</text>
+    <text class="desc" x="295" y="102" text-anchor="middle">JDBC Query →</text>
+    <text class="desc" x="295" y="120" text-anchor="middle">Postgres CopyIn</text>
     <text class="layer" x="295" y="170" text-anchor="middle">INGEST</text>
   </g>
   <line x1="375" y1="95" x2="393" y2="95" stroke="#6e7781" stroke-width="2" marker-end="url(#arrow)"/>

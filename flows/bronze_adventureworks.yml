@@ -1,0 +1,119 @@
+id: bronze_adventureworks
+namespace: workshop
+description: |
+  Ingest selected AdventureWorks tables from Azure SQL into the local
+  Postgres `analytics.raw.*` schema. Source tables are queried with
+  explicit column lists (snake_case aliases) so that Postgres COPY
+  positionally maps them onto the bronze tables created by
+  `tutorial/sql/01_create_bronze_tables.sql`.
+
+  Run from the Kestra UI: open the flow, click "Execute", paste the
+  Azure SQL credentials, and watch the ForEach fan out across all 9
+  tables in parallel.
+
+inputs:
+  - id: azure_sql_host
+    type: STRING
+    description: "e.g. myserver.database.windows.net"
+  - id: azure_sql_database
+    type: STRING
+    defaults: AdventureWorks
+  - id: azure_sql_user
+    type: STRING
+  - id: azure_sql_password
+    type: STRING
+    description: "SQL Server password"
+
+variables:
+  source_url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;database={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net"
+  target_url: "jdbc:postgresql://postgres:5432/analytics"
+
+tasks:
+  - id: ingest_tables
+    type: io.kestra.plugin.core.flow.ForEach
+    concurrencyLimit: 3
+    values:
+      - target: sales_order_header
+        select: |
+          SELECT
+            SalesOrderID, RevisionNumber, OrderDate, DueDate, ShipDate, Status,
+            OnlineOrderFlag, SalesOrderNumber, PurchaseOrderNumber, AccountNumber,
+            CustomerID, SalesPersonID, TerritoryID, BillToAddressID, ShipToAddressID,
+            ShipMethodID, CreditCardID, CurrencyRateID, SubTotal, TaxAmt, Freight,
+            TotalDue, Comment, ModifiedDate
+          FROM Sales.SalesOrderHeader
+
+      - target: sales_order_detail
+        select: |
+          SELECT
+            SalesOrderID, SalesOrderDetailID, CarrierTrackingNumber, OrderQty,
+            ProductID, SpecialOfferID, UnitPrice, UnitPriceDiscount, LineTotal,
+            ModifiedDate
+          FROM Sales.SalesOrderDetail
+
+      - target: customer
+        select: |
+          SELECT CustomerID, PersonID, StoreID, TerritoryID, AccountNumber, ModifiedDate
+          FROM Sales.Customer
+
+      - target: person
+        select: |
+          SELECT
+            BusinessEntityID, PersonType, NameStyle, Title, FirstName, MiddleName,
+            LastName, Suffix, EmailPromotion, ModifiedDate
+          FROM Person.Person
+
+      - target: sales_territory
+        select: |
+          SELECT
+            TerritoryID, Name, CountryRegionCode, [Group], SalesYTD, SalesLastYear,
+            CostYTD, CostLastYear, ModifiedDate
+          FROM Sales.SalesTerritory
+
+      - target: sales_person
+        select: |
+          SELECT
+            BusinessEntityID, TerritoryID, SalesQuota, Bonus, CommissionPct,
+            SalesYTD, SalesLastYear, ModifiedDate
+          FROM Sales.SalesPerson
+
+      - target: product
+        select: |
+          SELECT
+            ProductID, Name, ProductNumber, MakeFlag, FinishedGoodsFlag, Color,
+            SafetyStockLevel, ReorderPoint, StandardCost, ListPrice, Size,
+            SizeUnitMeasureCode, WeightUnitMeasureCode, Weight, DaysToManufacture,
+            ProductLine, Class, Style, ProductSubcategoryID, ProductModelID,
+            SellStartDate, SellEndDate, DiscontinuedDate, ModifiedDate
+          FROM Production.Product
+
+      - target: product_subcategory
+        select: |
+          SELECT ProductSubcategoryID, ProductCategoryID, Name, ModifiedDate
+          FROM Production.ProductSubcategory
+
+      - target: product_category
+        select: |
+          SELECT ProductCategoryID, Name, ModifiedDate
+          FROM Production.ProductCategory
+
+    tasks:
+      # Step 1: query Azure SQL, write the rows to a CSV file in Kestra storage.
+      - id: query_source
+        type: io.kestra.plugin.jdbc.sqlserver.Query
+        url: "{{ vars.source_url }}"
+        username: "{{ inputs.azure_sql_user }}"
+        password: "{{ inputs.azure_sql_password }}"
+        sql: "{{ taskrun.value.select }}"
+        fetchType: STORE
+
+      # Step 2: bulk-load that CSV into the matching Postgres bronze table.
+      - id: copy_to_bronze
+        type: io.kestra.plugin.jdbc.postgresql.CopyIn
+        url: "{{ vars.target_url }}"
+        username: postgres
+        password: postgres
+        from: "{{ outputs.query_source.uri }}"
+        table: "raw.{{ taskrun.value.target }}"
+        format: CSV
+        header: true

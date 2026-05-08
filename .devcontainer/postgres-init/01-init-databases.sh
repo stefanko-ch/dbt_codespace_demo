@@ -5,7 +5,7 @@ set -euo pipefail
 # the postgres image itself via POSTGRES_DB, and is reserved for the
 # AdventureWorks ingest from n8n.
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
-    CREATE DATABASE n8n;
+    CREATE DATABASE kestra;
     CREATE DATABASE metabase;
     CREATE DATABASE playground;
 EOSQL

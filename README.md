@@ -28,8 +28,7 @@ We build a small end-to-end data pipeline:
 ## Quickstart
 
 1. Fork the repository on GitHub.
-2. Add the Azure SQL Codespace secrets — see [Azure SQL secrets for n8n](#azure-sql-secrets-for-n8n) below. Without these, n8n cannot reach AdventureWorks.
-3. In your fork: **Code → Codespaces → Create codespace on main**.
+2. In your fork: **Code → Codespaces → Create codespace on main**.
 4. On first start, Codespaces builds the image and runs `uv sync` (~2–3 min).
 5. Once the codespace is ready, these ports are forwarded automatically:
    - **5678** → n8n UI (opens automatically in the preview pane)
