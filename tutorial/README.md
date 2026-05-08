@@ -6,10 +6,9 @@ You'll work through four tasks. Each task is a self-contained markdown with goal
 
 ## What you'll build
 
-```
- Azure SQL ──► n8n ──► Postgres analytics.raw ──► dbt staging ──► dbt marts (star schema) ──► Metabase
-   source       ingest         BRONZE                 SILVER              GOLD                  BI
-```
+<p align="center">
+  <img src="../assets/pipeline.svg" alt="Pipeline diagram from Azure SQL to Metabase" width="100%">
+</p>
 
 The `analytics` Postgres database receives all production data. Schemas inside it follow the medallion convention:
 

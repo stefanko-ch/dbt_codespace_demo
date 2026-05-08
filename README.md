@@ -6,10 +6,9 @@ Codespace environment for the workshop.
 
 We build a small end-to-end data pipeline:
 
-```
- Azure SQL (AdventureWorks) ──► n8n ──► Postgres (raw) ──► dbt ──► Postgres (staging → marts) ──► Metabase
-       source system         ingest    landing zone   transform        analytics models           BI / dashboards
-```
+<p align="center">
+  <img src="assets/pipeline.svg" alt="Pipeline: Azure SQL → n8n → Postgres raw → dbt → Postgres staging/marts → Metabase" width="100%">
+</p>
 
 - **Source:** the full **AdventureWorks** sample database hosted on Azure SQL (not AdventureWorksLT — we use the complete schema with `Sales`, `Production`, `Person`, `HumanResources`, etc.).
 - **Ingest with n8n:** workflows in n8n connect to Azure SQL using credentials read from Codespace secrets, pull selected tables, and load them into the `raw` schema of the local Postgres.

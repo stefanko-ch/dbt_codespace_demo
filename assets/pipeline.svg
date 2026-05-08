@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 230" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6e7781"/>
+    </marker>
+    <style>
+      .box        { fill: #ffffff; stroke-width: 2; }
+      .tool       { font-size: 15px; font-weight: 700; }
+      .desc       { font-size: 12px; fill: #57606a; }
+      .layer      { font-size: 11px; fill: #6e7781; font-weight: 600; letter-spacing: 0.5px; }
+      .azure      { stroke: #0078d4; }
+      .azure-fg   { fill: #0078d4; }
+      .n8n        { stroke: #ea4b71; }
+      .n8n-fg     { fill: #ea4b71; }
+      .pg         { stroke: #336791; }
+      .pg-fg      { fill: #336791; }
+      .dbt        { stroke: #ff694a; }
+      .dbt-fg     { fill: #ff694a; }
+      .metabase   { stroke: #509ee3; }
+      .metabase-fg{ fill: #509ee3; }
+    </style>
+  </defs>
+
+  <!-- Azure SQL -->
+  <g>
+    <rect class="box azure" x="10" y="50" width="180" height="90" rx="8"/>
+    <text class="tool azure-fg" x="100" y="80" text-anchor="middle">Azure SQL</text>
+    <text class="desc" x="100" y="102" text-anchor="middle">AdventureWorks</text>
+    <text class="desc" x="100" y="120" text-anchor="middle">(full schema)</text>
+    <text class="layer" x="100" y="170" text-anchor="middle">SOURCE</text>
+  </g>
+  <line x1="190" y1="95" x2="208" y2="95" stroke="#6e7781" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- n8n -->
+  <g>
+    <rect class="box n8n" x="215" y="50" width="160" height="90" rx="8"/>
+    <text class="tool n8n-fg" x="295" y="80" text-anchor="middle">n8n</text>
+    <text class="desc" x="295" y="102" text-anchor="middle">Execute SQL →</text>
+    <text class="desc" x="295" y="120" text-anchor="middle">Insert rows</text>
+    <text class="layer" x="295" y="170" text-anchor="middle">INGEST</text>
+  </g>
+  <line x1="375" y1="95" x2="393" y2="95" stroke="#6e7781" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Postgres raw -->
+  <g>
+    <rect class="box pg" x="400" y="50" width="180" height="90" rx="8"/>
+    <text class="tool pg-fg" x="490" y="80" text-anchor="middle">Postgres</text>
+    <text class="desc" x="490" y="102" text-anchor="middle">analytics.raw.*</text>
+    <text class="desc" x="490" y="120" text-anchor="middle">1:1 source copies</text>
+    <text class="layer" x="490" y="170" text-anchor="middle">BRONZE</text>
+  </g>
+  <line x1="580" y1="95" x2="598" y2="95" stroke="#6e7781" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- dbt -->
+  <g>
+    <rect class="box dbt" x="605" y="50" width="160" height="90" rx="8"/>
+    <text class="tool dbt-fg" x="685" y="80" text-anchor="middle">dbt</text>
+    <text class="desc" x="685" y="102" text-anchor="middle">staging views</text>
+    <text class="desc" x="685" y="120" text-anchor="middle">+ star-schema marts</text>
+    <text class="layer" x="685" y="170" text-anchor="middle">TRANSFORM</text>
+  </g>
+  <line x1="765" y1="95" x2="783" y2="95" stroke="#6e7781" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Postgres marts -->
+  <g>
+    <rect class="box pg" x="790" y="50" width="200" height="90" rx="8"/>
+    <text class="tool pg-fg" x="890" y="80" text-anchor="middle">Postgres</text>
+    <text class="desc" x="890" y="102" text-anchor="middle">analytics.staging</text>
+    <text class="desc" x="890" y="120" text-anchor="middle">analytics.marts (star)</text>
+    <text class="layer" x="890" y="170" text-anchor="middle">SILVER &#183; GOLD</text>
+  </g>
+  <line x1="990" y1="95" x2="1008" y2="95" stroke="#6e7781" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Metabase -->
+  <g>
+    <rect class="box metabase" x="1015" y="50" width="170" height="90" rx="8"/>
+    <text class="tool metabase-fg" x="1100" y="80" text-anchor="middle">Metabase</text>
+    <text class="desc" x="1100" y="102" text-anchor="middle">questions &amp;</text>
+    <text class="desc" x="1100" y="120" text-anchor="middle">dashboards</text>
+    <text class="layer" x="1100" y="170" text-anchor="middle">BI</text>
+  </g>
+
+  <!-- Bottom medallion bar -->
+  <g>
+    <line x1="400" y1="200" x2="990" y2="200" stroke="#d0d7de" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="695" y="220" text-anchor="middle" font-size="11" fill="#6e7781">medallion layers inside the analytics database</text>
+  </g>
+</svg>
