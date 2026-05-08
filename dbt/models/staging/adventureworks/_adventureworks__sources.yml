@@ -1,0 +1,48 @@
+version: 2
+
+sources:
+  - name: adventureworks
+    description: |
+      Bronze tables ingested from the Azure SQL AdventureWorks sample
+      database by the `bronze_adventureworks` Kestra flow.
+    database: analytics
+    schema: raw
+    loaded_at_field: modified_date
+    freshness:
+      warn_after:  { count: 24, period: hour }
+      error_after: { count: 72, period: hour }
+
+    tables:
+      - name: customer
+        description: "Source: Sales.Customer. One row per customer (individual or store)."
+        columns:
+          - name: customer_id
+            description: "Natural key from SQL Server."
+            tests: [unique, not_null]
+
+      - name: person
+        description: "Source: Person.Person. People who are individuals (not stores)."
+        columns:
+          - name: business_entity_id
+            tests: [unique, not_null]
+
+      - name: product
+        description: "Source: Production.Product. Active and discontinued products."
+
+      - name: product_subcategory
+        description: "Source: Production.ProductSubcategory."
+
+      - name: product_category
+        description: "Source: Production.ProductCategory."
+
+      - name: sales_territory
+        description: "Source: Sales.SalesTerritory."
+
+      - name: sales_person
+        description: "Source: Sales.SalesPerson. Internal sales reps."
+
+      - name: sales_order_header
+        description: "Source: Sales.SalesOrderHeader. Order header -- one row per order."
+
+      - name: sales_order_detail
+        description: "Source: Sales.SalesOrderDetail. Order line items -- one row per line."
