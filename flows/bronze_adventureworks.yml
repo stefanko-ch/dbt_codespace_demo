@@ -41,7 +41,6 @@ inputs:
     defaults: this_is_a_very_UNSECURE_Password_123!
 
 variables:
-  source_url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;databaseName={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=true;loginTimeout=30"
   target_url: "jdbc:postgresql://postgres:5432/analytics"
 
 tasks:
@@ -71,7 +70,7 @@ tasks:
   # since Postgres.Batch binds positionally.
   - id: query_source
     type: io.kestra.plugin.jdbc.sqlserver.Query
-    url: "{{ vars.source_url }}"
+    url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;databaseName={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=true;loginTimeout=30"
     username: "{{ inputs.azure_sql_user }}"
     password: "{{ inputs.azure_sql_password }}"
     fetchType: STORE
