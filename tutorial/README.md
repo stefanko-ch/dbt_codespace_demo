@@ -1,10 +1,8 @@
-# Tutorial — From AdventureWorks to a Star Schema
+# Tutorial — From AdventureWorks to a Metabase Dashboard
 
-End-to-end workshop: take the **AdventureWorks** sample database on Azure SQL, ingest it into Postgres with **Kestra**, and build a **dimensional model** with **dbt**.
+End-to-end workshop: take the **AdventureWorks** sample database on Azure SQL, ingest it into Postgres with **Kestra**, build a **dimensional model** with **dbt**, and analyze it in **Metabase**.
 
-You'll work through three tasks. Each task is a self-contained markdown with goal, steps, and an acceptance check.
-
-> The BI layer (Metabase) follows in a separate session and isn't part of the current stack.
+You'll work through four tasks. Each task is a self-contained markdown with goal, steps, and an acceptance check.
 
 ## What you'll build
 
@@ -29,15 +27,17 @@ The `playground` database is left alone for the dbt warm-up (`dbt seed && dbt ru
 | 1 | [Bronze: ingest AdventureWorks with Kestra](01-bronze-kestra.md) | Kestra      |
 | 2 | [Silver: clean staging models](02-silver-dbt.md)                | dbt         |
 | 3 | [Gold: dimensional model](03-gold-dimensional-model.md)         | dbt         |
+| 4 | [BI: analyze in Metabase](04-metabase.md)                       | Metabase    |
 
 ## Ports in the Codespace
 
-The Codespace forwards three ports — find them in the **Ports** panel at the bottom of VS Code, or under "Forwarded Addresses" in the Codespaces UI.
+The Codespace forwards four ports — find them in the **Ports** panel at the bottom of VS Code, or under "Forwarded Addresses" in the Codespaces UI.
 
 | Port  | What it is      | How to open                                                                       |
 | ----- | --------------- | --------------------------------------------------------------------------------- |
 | 8090  | **Kestra** UI   | Click the globe icon next to port 8090 (auto-opens as a preview on first start)   |
 | 8080  | **dbt docs**    | Click the globe icon next to port 8080 after running `dbt docs serve` in `dbt/`   |
+| 3000  | **Metabase** UI | Click the globe icon next to port 3000 (Task 4)                                   |
 | 5432  | **Postgres**    | Not for the browser — used by dbt, SQLTools, `psql`                               |
 
 > The forwarded URL looks like `https://<codespace-name>-8090.app.github.dev` — that's normal. Each port gets its own subdomain.

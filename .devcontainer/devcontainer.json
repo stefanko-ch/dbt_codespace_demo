@@ -4,8 +4,8 @@
     "service": "workspace",
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "hostRequirements": {
-        "cpus": 2,
-        "memory": "8gb",
+        "cpus": 4,
+        "memory": "16gb",
         "storage": "32gb"
     },
     "features": {
@@ -14,7 +14,8 @@
     "forwardPorts": [
         5432,
         8090,
-        8080
+        8080,
+        3000
     ],
     "portsAttributes": {
         "5432": {
@@ -26,6 +27,9 @@
         },
         "8080": {
             "label": "dbt docs"
+        },
+        "3000": {
+            "label": "Metabase"
         }
     },
     "containerEnv": {
@@ -69,6 +73,17 @@
                         "server": "postgres",
                         "port": 5432,
                         "database": "kestra",
+                        "username": "postgres",
+                        "password": "postgres",
+                        "askForPassword": false,
+                        "previewLimit": 50
+                    },
+                    {
+                        "name": "metabase (Postgres)",
+                        "driver": "PostgreSQL",
+                        "server": "postgres",
+                        "port": 5432,
+                        "database": "metabase",
                         "username": "postgres",
                         "password": "postgres",
                         "askForPassword": false,
