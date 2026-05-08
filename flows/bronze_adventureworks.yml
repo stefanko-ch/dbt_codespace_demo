@@ -41,7 +41,7 @@ inputs:
     defaults: this_is_a_very_UNSECURE_Password_123!
 
 variables:
-  source_url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;database={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=false;hostNameInCertificate=*.database.windows.net"
+  source_url: "jdbc:sqlserver://{{ inputs.azure_sql_host }}:1433;database={{ inputs.azure_sql_database }};encrypt=true;trustServerCertificate=false"
   target_url: "jdbc:postgresql://postgres:5432/analytics"
 
 tasks:
