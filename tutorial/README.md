@@ -1,13 +1,15 @@
-# Tutorial — From AdventureWorks to a Metabase Dashboard
+# Tutorial — From AdventureWorks to a Star Schema
 
-End-to-end workshop: take the **AdventureWorks** sample database on Azure SQL, ingest it into Postgres with **Kestra**, build a **dimensional model** with **dbt**, and analyze it in **Metabase**.
+End-to-end workshop: take the **AdventureWorks** sample database on Azure SQL, ingest it into Postgres with **Kestra**, and build a **dimensional model** with **dbt**.
 
-You'll work through four tasks. Each task is a self-contained markdown with goal, steps, and an acceptance check.
+You'll work through three tasks. Each task is a self-contained markdown with goal, steps, and an acceptance check.
+
+> The BI layer (Metabase) follows in a separate session and isn't part of the current stack.
 
 ## What you'll build
 
 <p align="center">
-  <img src="../assets/pipeline.svg" alt="Pipeline diagram from Azure SQL to Metabase" width="100%">
+  <img src="../assets/pipeline.svg" alt="Pipeline diagram: Azure SQL → Kestra → Postgres raw → dbt → staging/marts" width="100%">
 </p>
 
 The `analytics` Postgres database receives all production data. Schemas inside it follow the medallion convention:
@@ -27,24 +29,22 @@ The `playground` database is left alone for the dbt warm-up (`dbt seed && dbt ru
 | 1 | [Bronze: ingest AdventureWorks with Kestra](01-bronze-kestra.md) | Kestra      |
 | 2 | [Silver: clean staging models](02-silver-dbt.md)                | dbt         |
 | 3 | [Gold: dimensional model](03-gold-dimensional-model.md)         | dbt         |
-| 4 | [Analyze in Metabase](04-metabase.md)                           | Metabase    |
 
 ## Ports in the Codespace
 
-The Codespace forwards three ports — find them in the **Ports** panel at the bottom of VS Code, or under "Forwarded Addresses" in the Codespaces UI.
+The Codespace forwards two ports — find them in the **Ports** panel at the bottom of VS Code, or under "Forwarded Addresses" in the Codespaces UI.
 
-| Port  | What it is        | How to open                                                                                |
-| ----- | ----------------- | ------------------------------------------------------------------------------------------ |
-| 8080  | **Kestra** UI     | Click the globe icon next to port 8080 (auto-opens as a preview on first start)            |
-| 3000  | **Metabase** UI   | Click the globe icon next to port 3000                                                     |
-| 5432  | **Postgres**      | Not for the browser — used by dbt, Database Client, `psql`, and Metabase's internal connection |
+| Port  | What it is    | How to open                                                                       |
+| ----- | ------------- | --------------------------------------------------------------------------------- |
+| 8080  | **Kestra** UI | Click the globe icon next to port 8080 (auto-opens as a preview on first start)   |
+| 5432  | **Postgres**  | Not for the browser — used by dbt, SQLTools, `psql`                               |
 
 > The forwarded URL looks like `https://<codespace-name>-8080.app.github.dev` — that's normal. Each port gets its own subdomain.
 
 ## Before you start
 
 1. Codespace is up and running (see [main README](../README.md))
-2. You have credentials to the Azure SQL AdventureWorks database (host, db, user, password). They are entered into the Kestra flow at execution time — no Codespace secrets required.
+2. You have credentials to the Azure SQL AdventureWorks database. They are entered into the Kestra flow at execution time (or pre-filled as defaults in the flow) — no Codespace secrets required.
 3. The dbt warm-up runs successfully:
    ```bash
    cd dbt

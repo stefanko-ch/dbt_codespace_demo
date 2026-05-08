@@ -13,8 +13,7 @@
     },
     "forwardPorts": [
         5432,
-        8080,
-        3000
+        8080
     ],
     "portsAttributes": {
         "5432": {
@@ -23,9 +22,6 @@
         "8080": {
             "label": "Kestra",
             "onAutoForward": "openPreview"
-        },
-        "3000": {
-            "label": "Metabase"
         }
     },
     "containerEnv": {
@@ -69,17 +65,6 @@
                         "server": "postgres",
                         "port": 5432,
                         "database": "kestra",
-                        "username": "postgres",
-                        "password": "postgres",
-                        "askForPassword": false,
-                        "previewLimit": 50
-                    },
-                    {
-                        "name": "metabase (Postgres)",
-                        "driver": "PostgreSQL",
-                        "server": "postgres",
-                        "port": 5432,
-                        "database": "metabase",
                         "username": "postgres",
                         "password": "postgres",
                         "askForPassword": false,

@@ -1,6 +1,6 @@
 # Task 3 — Gold: Dimensional Model
 
-**Goal:** turn the silver staging views into a Kimball-style **star schema** that Metabase users can pivot on without thinking.
+**Goal:** turn the silver staging views into a Kimball-style **star schema** that BI users can pivot on without thinking.
 
 The output of this task is one fact + four dimensions, all in `analytics.marts.*`:
 
@@ -301,4 +301,4 @@ SELECT
 
 ## Next
 
-→ [Task 4: Analyze in Metabase](04-metabase.md)
+→ Back to [Tutorial overview](README.md). The BI / dashboard layer (Metabase) follows in a separate session.

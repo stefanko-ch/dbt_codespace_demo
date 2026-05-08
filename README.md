@@ -7,22 +7,22 @@ Codespace environment for the workshop.
 We build a small end-to-end data pipeline:
 
 <p align="center">
-  <img src="assets/pipeline.svg" alt="Pipeline: Azure SQL → Kestra → Postgres raw → dbt → Postgres staging/marts → Metabase" width="100%">
+  <img src="assets/pipeline.svg" alt="Pipeline: Azure SQL → Kestra → Postgres raw → dbt → Postgres staging/marts" width="100%">
 </p>
 
 - **Source:** the full **AdventureWorks** sample database hosted on Azure SQL (not AdventureWorksLT — we use the complete schema with `Sales`, `Production`, `Person`, `HumanResources`, etc.).
-- **Ingest with Kestra:** a YAML flow ([`flows/bronze_adventureworks.yml`](flows/bronze_adventureworks.yml)) queries Azure SQL and bulk-loads the result into the `raw` schema of the local Postgres via `Postgres.CopyIn`. Credentials are entered at execution time, so no secrets live in the repo.
+- **Ingest with Kestra:** a YAML flow ([`flows/bronze_adventureworks.yml`](flows/bronze_adventureworks.yml)) queries Azure SQL and inserts the result into the `raw` schema of the local Postgres via `Postgres.Batch`. Credentials are entered at execution time (or pre-filled as defaults).
 - **Transform with dbt:** a dbt project on top of Postgres turns the raw tables into clean staging views and curated marts. DuckDB is wired up as an alternative target for offline experiments.
-- **Visualize with Metabase:** Metabase connects to the same Postgres warehouse to explore the marts and build dashboards.
-- **Everything runs in a Codespace:** Postgres, Kestra, dbt, and Metabase are containers in one `docker-compose` stack. Students fork the repo, open it in a Codespace, and have the full environment in a few minutes.
+- **Everything runs in a Codespace:** Postgres, Kestra, and dbt are containers in one `docker-compose` stack. Students fork the repo, open it in a Codespace, and have the full environment in a few minutes.
+
+> A BI layer (Metabase) will be added later — for now everything stops at the dbt marts.
 
 ## Stack
 
-- **Postgres 16** as the warehouse, with four DBs: `analytics` (AdventureWorks target), `playground` (dbt warm-up), `kestra` and `metabase` (backing stores)
+- **Postgres 16** as the warehouse, with three DBs: `analytics` (AdventureWorks target), `playground` (dbt warm-up), `kestra` (backing store)
 - **Kestra** for orchestrating the bronze ingestion (declarative YAML flows, JDBC source/destination)
 - **dbt** (Postgres + DuckDB adapters) as a uv-managed Python project, with named targets for `playground` (default) and `analytics`
-- **Metabase** for BI and dashboards
-- VS Code extensions: dbt Power User and SQLTools (with the PostgreSQL driver) — pre-configured connections for all four DBs
+- VS Code extensions: dbt Power User and SQLTools (with the PostgreSQL driver) — pre-configured connections for all three DBs
 - `docker` CLI available inside the workspace (via docker-outside-of-docker) for `docker logs`, `docker exec`, etc.
 
 ## Quickstart
@@ -32,10 +32,9 @@ We build a small end-to-end data pipeline:
 3. On first start, Codespaces builds the image and runs `uv sync` (~2–3 min). Kestra adds another ~30–60 s for JVM warmup on first launch.
 4. Once the codespace is ready, these ports are forwarded automatically:
    - **8080** → Kestra UI (auto-opens in the preview pane)
-   - **3000** → Metabase UI
    - **5432** → Postgres
 
-For the full guided path (bronze → silver → gold → BI), see [`tutorial/README.md`](tutorial/README.md).
+For the full guided path (bronze → silver → gold), see [`tutorial/README.md`](tutorial/README.md).
 
 ## Using dbt
 
@@ -81,10 +80,10 @@ From the terminal:
 
 ```bash
 psql                           # drops into the playground DB by default
-psql -d analytics              # switch DB (or any of: kestra, metabase)
+psql -d analytics              # switch DB (or kestra)
 ```
 
-Or use the **SQLTools** sidebar in VS Code (database icon in the activity bar). Four connections are pre-configured — `analytics`, `playground`, `kestra`, `metabase`. Click any of them, then "Connect", no password prompt.
+Or use the **SQLTools** sidebar in VS Code (database icon in the activity bar). Three connections are pre-configured — `analytics`, `playground`, `kestra`. Click any of them, then "Connect", no password prompt.
 
 Schemas inside the `playground` and `analytics` DBs after `dbt run`:
 - `raw` — seeds / ingested tables
@@ -99,32 +98,17 @@ The container mounts the repo's [`flows/`](flows/) directory read-only into `/ap
 
 The bronze ingestion flow [`bronze_adventureworks.yml`](flows/bronze_adventureworks.yml) declares its Azure SQL credentials as **inputs** — Kestra prompts for them at execution time, so they never need to be checked into git or set as Codespace secrets.
 
-## Metabase
-
-UI on port **3000**. On first visit Metabase walks you through creating an admin account. The Metabase application data (questions, dashboards, users) is stored in the `metabase` database on Postgres and survives container restarts.
-
-To explore the dbt output, add the warehouse as a database in **Settings → Databases → Add database**:
-- Database type: **PostgreSQL**
-- Display name: anything (e.g. `analytics`)
-- Host: `postgres`
-- Port: `5432`
-- Database name: `analytics`
-- Username: `postgres`
-- Password: `postgres`
-
-Once added, Metabase will sync the schemas — `marts.*` is the recommended starting point for dashboards.
-
 ## Layout
 
 ```
 .devcontainer/
   Dockerfile           # Python 3.12 + uv + psql client
   devcontainer.json    # Codespace config (ports, postCreate, extensions, docker-in-docker)
-  docker-compose.yml   # workspace + postgres + kestra + metabase
+  docker-compose.yml   # workspace + postgres + kestra
   postgres-init/
-    01-init-databases.sh   # creates kestra / metabase / playground DBs and raw/staging/marts schemas
+    01-init-databases.sh   # creates kestra and playground DBs
 flows/
-  bronze_adventureworks.yml  # Kestra flow: 9 AdventureWorks tables → analytics.raw
+  bronze_adventureworks.yml  # Kestra flow: worked example for one AdventureWorks table → analytics.raw
 dbt/
   pyproject.toml       # uv: dbt-core, dbt-postgres, dbt-duckdb
   dbt_project.yml
@@ -133,10 +117,10 @@ dbt/
   models/
     staging/           # stg_books, stg_members, stg_loans (views)
     marts/             # book_popularity, member_activity (tables)
-tutorial/              # guided workshop (Bronze → Silver → Gold → Metabase)
+tutorial/              # guided workshop (Bronze → Silver → Gold)
 ```
 
 ## Notes
 
-- Postgres, Kestra, and Metabase data persist in Docker volumes (`postgres-data`, `kestra-data`, `metabase-data`). Stopping the codespace keeps them; deleting the codespace wipes them.
+- Postgres and Kestra data persist in Docker volumes (`postgres-data`, `kestra-data`). Stopping the codespace keeps them; deleting the codespace wipes them.
 - If `uv sync` fails, run it manually in `dbt/` and open a new terminal.
