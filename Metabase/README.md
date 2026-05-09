@@ -62,3 +62,7 @@ Once the official tutorial feels comfortable:
 After that, when you're tired of clicking through Admin → Table Metadata:
 
 → [Tutorial 05: Automate the modeling with dbt-metabase](../tutorial/05-dbt-metabase-sync.md)
+
+Or if you just want a working dashboard without any of the modeling steps — for a demo, or after re-spinning your Codespace:
+
+→ [Pre-built Sales Overview dashboard](dashboard.md) — one Python script, all four questions plus a date-range filter wired up.
