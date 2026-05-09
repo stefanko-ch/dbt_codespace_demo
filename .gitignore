@@ -1,6 +1,10 @@
 # macOS Finder
 .DS_Store
 
+# Local-only Metabase dashboard helpers (not part of the workshop)
+Metabase/setup_dashboard.py
+Metabase/dashboard.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
