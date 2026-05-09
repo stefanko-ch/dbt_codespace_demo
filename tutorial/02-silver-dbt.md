@@ -4,6 +4,16 @@
 
 Plan to spend ~2 hours here. Don't rush — staging is where data quality is enforced, and most production dbt projects spend the bulk of their model count in this layer.
 
+> ## ⚠️ Always pass `--target analytics`
+>
+> The dbt project's default target is **`playground`** (the library warm-up DB). Every AdventureWorks command in this and the next two tutorials must explicitly use `--target analytics`, e.g.
+>
+> ```bash
+> dbt build --target analytics
+> ```
+>
+> Without the flag you'll get cross-database errors (`cross-database references are not implemented: "analytics.raw.X"`) — Postgres doesn't allow cross-DB queries. If you forget once, just re-run with the flag; nothing destructive happens.
+
 ## What "silver / staging" means
 
 The staging layer is the **only** place where raw column names and types from the source get touched. After staging, every downstream model can assume:
