@@ -2,7 +2,9 @@
 
 End-to-end workshop: take the **AdventureWorks** sample database on Azure SQL, ingest it into Postgres with **Kestra**, build a **dimensional model** with **dbt**, and analyze it in **Metabase**.
 
-You'll work through four tasks. Each task is a self-contained markdown with goal, steps, and an acceptance check.
+You'll work through five tasks. Each task is a self-contained markdown with goal, steps, and an acceptance check.
+
+> Before Task 4, spend ~30 minutes getting comfortable with Metabase via [`Metabase/README.md`](../Metabase/README.md) — it points at the official free Metabase Learn videos. Don't skip that on-ramp; Task 4's clicking only makes sense once you know what those screens *do*.
 
 ## What you'll build
 
@@ -27,7 +29,10 @@ The `playground` database is left alone for the dbt warm-up (`dbt seed && dbt ru
 | 1 | [Bronze: ingest AdventureWorks with Kestra](01-bronze-kestra.md) | Kestra      |
 | 2 | [Silver: clean staging models](02-silver-dbt.md)                | dbt         |
 | 3 | [Gold: dimensional model](03-gold-dimensional-model.md)         | dbt         |
-| 4 | [BI: analyze in Metabase](04-metabase.md)                       | Metabase    |
+| 4 | [BI: connect Metabase + manual modeling](04-metabase.md)        | Metabase    |
+| 5 | [Sync: automate the modeling with dbt-metabase](05-dbt-metabase-sync.md) | dbt + Metabase |
+
+For deeper background on the dbt project itself (why dimensions before facts, the singular tests, surrogate-key gotchas), see the [**dbt Solution walkthrough**](dbt_Solution.md) — companion document to tasks 2 and 3.
 
 ## Ports in the Codespace
 

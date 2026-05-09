@@ -1,142 +1,212 @@
-# Task 4 — Analyze in Metabase
+# Task 4 — BI: Connect Metabase and Model the Star Schema
 
-**Goal:** plug Metabase into the `analytics` warehouse and build a small Sales dashboard from the star schema you just created — and see what makes a *dbt-driven* BI setup different from a plain one.
+**Goal:** wire Metabase to the `analytics` warehouse, then **manually** curate the marts so a non-technical user can browse them — adding descriptions, marking primary and foreign keys, picking semantic types. By the end you'll have a queryable, click-to-drill-through model that Tutorial 5 will then show you how to automate.
 
-By the end you'll have:
-- The `analytics` Postgres added as a Metabase data source
-- The marts schema **modeled automatically from your dbt project** — descriptions, primary keys, foreign-key relationships, semantic types, all synced via `dbt-metabase` (no clicking through admin screens)
-- Four questions answered from the data
-- A dashboard combining them
-
-> ## First time using Metabase?
-> This task assumes you already know what Metabase **is** and how its UI is roughly organised — Questions, Dashboards, Collections. If those terms are new, spend ~30 min in the official, free [**Metabase Learn**](https://www.metabase.com/learn/metabase-basics/getting-started/) tutorials before continuing. They cover concepts, the query builder, dashboards, filters, and summarisation — exactly the basics this task builds on.
+> ## Prerequisite — get comfortable with Metabase first
 >
-> The *interesting* part of this task isn't "how does Metabase work" — it's how dbt and Metabase reinforce each other when you stop treating them as separate tools.
+> This task assumes you already know your way around Metabase: Questions vs Dashboards, the query builder, summarisation, filters. If those are new, **stop here** and work through [`Metabase/README.md`](../../Metabase/README.md) first — it walks you through logging in, the official [Metabase Learn](https://www.metabase.com/learn/) tutorial (~30 min), and the concepts you'll need below.
+>
+> Don't skip this. The clicking in Step 3 doesn't make sense without first seeing what those settings *do* in the GUI.
 
-## Step 1 — Open Metabase and create the admin account
+Plan to spend ~1 hour on this task.
 
-Open port **3000** from the Codespace's Ports panel. On first launch Metabase walks you through:
-1. Language → English
-2. Admin profile → use any name and email; pick a password you'll remember
-3. Add data later → **I'll add my data later**
+## Why we model manually first
 
-Metabase's own data (questions, dashboards, users) is persisted in the `metabase` Postgres DB — it survives container restarts.
+Tutorial 5 introduces `dbt-metabase`, a CLI tool that takes everything you'll click through in Step 3 and applies it from your dbt YAML files automatically. So why do the manual version at all?
 
-## Step 2 — Connect to the analytics warehouse
+- **You learn what the settings actually mean.** "Foreign Key", "Entity Key", "Semantic Type — currency" — these are real Metabase concepts, not just YAML knobs. Once you've curated five tables by hand, the automation tool's flags make sense; you know what each one is replacing.
+- **You can debug from first principles.** When the automated sync misses something, you know whether the issue is on the Metabase side, the dbt side, or the bridge. Skip the manual step and you can't tell.
+- **Day-to-day BI work involves manual curation anyway.** Not every column or table is worth describing in dbt. For one-off questions, ad-hoc segments, dashboard-specific renamings, you'll always click in Metabase. Tutorial 5 augments this skill, it doesn't replace it.
+
+## Step 1 — Connect to the analytics warehouse
+
+You should already be logged into Metabase from the [Metabase intro](../../Metabase/README.md). Now add Postgres as a data source:
 
 **Settings (gear icon) → Admin Settings → Databases → Add database:**
 
-| Field            | Value                |
-| ---------------- | -------------------- |
-| Database type    | PostgreSQL           |
-| Display name     | `analytics`          |
-| Host             | `postgres`           |
-| Port             | `5432`               |
-| Database name    | `analytics`          |
-| Username         | `postgres`           |
-| Password         | `postgres`           |
-| Schemas          | `marts`      |
-| Use a secure connection (SSL) | off    |
+| Field            | Value             |
+| ---------------- | ----------------- |
+| Database type    | PostgreSQL        |
+| Display name     | `analytics`       |
+| Host             | `postgres`        |
+| Port             | `5432`            |
+| Database name    | `analytics`       |
+| Username         | `postgres`        |
+| Password         | `postgres`        |
+| Schemas          | `marts`           |
+| Use a secure connection (SSL) | off  |
 
-Save. Metabase will sync — wait for the "Done" indicator (~30 seconds).
+Save. Metabase syncs the schema (~30 seconds). Wait for the **"Done"** indicator before continuing.
 
-> Tip: limiting **Schemas** to `marts` (not `staging`, not `raw`) keeps Metabase focused on the BI-ready layer. Staging is an intermediate dbt artefact — your end users don't want to browse `stg_aw__sales_order_header` next to `fact_sales`.
+> **Why only `marts`?** Staging is a dbt-internal layer — `stg_aw__sales_order_header` is intermediate, not BI material. Showing it to end users alongside `fact_sales` invites accidental queries against intermediate state. We deliberately scope Metabase to the gold layer only.
 
-At this point Metabase has discovered your tables — but it knows nothing about them. No descriptions, no relationships, no idea which columns are primary keys. If you click **Browse data → analytics → marts → fact_sales**, you'll see raw column names with no structure on top.
+> **Display name matters.** Tutorial 5 will reference this database by the display name you typed (`analytics`). If you took the default ("Postgres"), you'll need to either rename it later or pass `--metabase-database Postgres` to the sync tool. Pick `analytics` now and skip the friction.
 
-A traditional Metabase setup would now have you clicking through **Admin → Table Metadata** for every table, manually setting:
-- A description per table and column
-- "Entity Key" markers on `*_key` columns
-- "Foreign Key" targets pointing each `fact_sales.*_key` to its dim
-- Semantic types for emails, currencies, URLs
+### Quick sanity check
 
-That's ~80 clicks for our six marts. **And** it has to be redone whenever the schema changes.
+In Metabase: **Browse data → analytics → marts**. You should see eight tables:
 
-We can do better.
-
-## Step 3 — Sync the dbt model into Metabase with `dbt-metabase`
-
-[`dbt-metabase`](https://github.com/gouline/dbt-metabase) is an actively maintained Python tool (v1.7.x as of 2026) that reads your dbt project's manifest and propagates everything Metabase needs to know about your tables — directly from your `*.yml` files.
-
-What gets synced from dbt → Metabase:
-
-| dbt source                                  | Metabase result                            |
-| ------------------------------------------- | ------------------------------------------ |
-| `description:` on a model or column          | Metabase table / column description         |
-| `tests: [unique, not_null]` on a key column  | "Entity Key" marker                         |
-| `tests: relationships:`                     | "Foreign Key" target on the column         |
-| Column-name conventions (`*_email`, `*_url`, `..._id`) | Inferred semantic types                    |
-| `meta:` blocks in YAML (custom)             | Display names, hidden flags, semantic types |
-
-### 3.1 — Create a Metabase API key
-
-In Metabase: **Admin → Settings → Authentication → API Keys → Create API key**.
-
-- Name: `dbt-metabase`
-- Group: **Administrators** (the sync needs admin scope to write metadata)
-
-Copy the resulting `mb_...` token to your clipboard. Treat it like a password — it grants full admin access. Store it as an environment variable rather than pasting it on the command line:
-
-```bash
-export MB_API_KEY='mb_paste_your_key_here'
+```
+book_popularity      ← from the library warm-up; ignore for this task
+dim_customer
+dim_date
+dim_product
+dim_sales_person
+dim_sales_territory
+fact_sales
+member_activity      ← from the library warm-up; ignore for this task
 ```
 
-### 3.2 — Compile the dbt manifest
+Click `fact_sales`. You'll get a generic table view with raw column names like `customer_key`, `product_id`, `unit_price`. No descriptions, no relationships, no idea which columns are keys. That's what Step 3 fixes.
 
-`dbt-metabase` reads `target/manifest.json`, which is regenerated every time you run any dbt command. To produce one without re-running models:
+If you click a value in `customer_key` (an MD5 hash like `f5e3a...`), nothing useful happens. By the end of Step 3, clicking that same value will offer "View this customer", drill through to the matching `dim_customer` row, because the foreign-key relationship will be set.
 
-```bash
-cd dbt
-dbt compile --target analytics
-```
+## Step 2 — Curate the dimensions
 
-The manifest now lives at `dbt/target/manifest.json` and contains every model, column, description, test, and tag in your project.
+We model dimensions before the fact for the same reason dbt builds them in that order: the fact's foreign keys point *at* dimensions, so the dim rows need to be there first (they already are, from `dbt build`), but in Metabase the FK target dropdown only shows tables that have been marked with an Entity Key.
 
-### 3.3 — Run the sync
+For each dimension, we'll do three things in **Admin → Table Metadata → analytics → marts → `<table>`**:
 
-```bash
-dbt-metabase models \
-  --manifest-path target/manifest.json \
-  --metabase-url http://metabase:3000 \
-  --metabase-api-key "$MB_API_KEY" \
-  --metabase-database analytics \
-  --include-schemas marts
-```
+1. **Table-level description** — what does this dim represent?
+2. **Entity Key** on the natural key column (`customer_id`, `product_id`, etc.) — the column that uniquely identifies a row.
+3. **Hidden flags** — hide rarely-useful columns (e.g. `rowguid` if it had survived) from regular users.
+4. **Per-column descriptions** for the columns that aren't self-explanatory.
 
-Two non-obvious bits worth pointing out:
+> The natural key (`customer_id`) is the Entity Key in Metabase, **not** the surrogate `customer_key`. Why? Because Entity Key in Metabase semantically means "the unique business identifier of this entity", and our `*_key` columns are MD5 hashes — useful for fact joins but not human-friendly. If a user clicks "View this entity", they want to see customer 17, not hash `f5e3a...`.
 
-- **`--metabase-url http://metabase:3000`**, not `localhost`. `dbt-metabase` runs inside the `workspace` container; from there, `localhost:3000` is the workspace itself. Metabase is reachable via the docker-compose service name `metabase`.
-- **`--include-schemas marts`**, comma-separated. Space-separated would be parsed as positional arguments and fail.
+### `dim_date`
 
-Expected output: a list of synced models with the count of fields updated per model. ~5 seconds total.
+- **Description:** *"Calendar dimension. One row per day from 2010-01-01 through 2030-12-31. Use the pre-computed parts (year, quarter, month, day_name, is_weekend) instead of EXTRACT() in your questions."*
+- **Entity Key:** `date_actual`
+- **Field types to set:**
+  - `date_actual` → Type: **Creation date** (so Metabase treats it as the canonical date for joins via auto-discovered relationships)
+  - `is_weekend`, `is_quarter_start`, `is_month_end` → Hide from "Filtering on this field" (just hide; they're flags for Group By, not filters)
+- **Hide:** `date_key` from "Regular tables" — it's the surrogate hash, only used internally for joins. Set Visibility: **Only in detail views**.
 
-Now refresh Metabase (**Browse data → analytics → marts → fact_sales**) and look at the column list. Compare with the "before" state:
+### `dim_customer`
 
-- `customer_key`, `product_key`, `date_key`, `territory_key`, `sales_person_key` are now marked as **Foreign Key** with the right target dim auto-set.
-- The natural-key columns on each dim (`customer_id`, `product_id`, …) are marked as **Entity Key**.
-- Every column you described in [`_adventureworks_marts__models.yml`](../dbt/models/marts/adventureworks/_adventureworks_marts__models.yml) carries that description in Metabase's UI as a tooltip.
+- **Description:** *"One row per customer. Mixes individuals (with a name from `dim_person`) and stores (no name, identified by `store_id`). Use `customer_type` to distinguish."*
+- **Entity Key:** `customer_id`
+- **Per-column descriptions:**
+  - `customer_type` → *"'individual', 'store', or 'unknown'."*
+  - `customer_name` → *"Full name for individuals; NULL for stores (which are identified by store_id)."*
+  - `email_promotion` → *"AdventureWorks email-marketing opt-in flag (0/1/2)."*
+- **Hide:** `customer_key`, `store_id` (rarely queried), set both to "Only in detail views".
 
-### 3.4 — Verify with a question
+### `dim_product`
 
-Click **+ New → Question → Sales > Fact Sales**. Try **Summarize → Sum of `net_amount` → Group by `Customer → Customer Type`**. Notice:
+- **Description:** *"One row per product. The product → subcategory → category hierarchy is denormalized — `subcategory_name` and `category_name` are right here on the dim, no JOIN needed."*
+- **Entity Key:** `product_id`
+- **Per-column descriptions:**
+  - `is_active` → *"Product is currently being sold (sell_end_date and discontinued_date are both NULL)."*
+  - `list_price` → *"Standard list price in USD."*
+  - `standard_cost` → *"Standard cost in USD; for margin calculations."*
+- **Field types:**
+  - `list_price` → Type: **Currency**
+  - `standard_cost` → Type: **Currency**
+  - `weight` → Type: **No semantic type** (it's a number; AdventureWorks doesn't tell us the unit)
+- **Hide:** `product_key`, `product_subcategory_id`, `product_category_id` → Only in detail views.
 
-- You can navigate `Customer → ...` because the FK is set.
-- The drill-down options for each row include "View customer" and "View underlying records" because Metabase now knows the relationships.
+### `dim_sales_territory`
 
-That single CLI call replaced ~80 clicks. More importantly: your dbt YAML is now the **single source of truth** for the semantic layer. When you add a column description in dbt, re-run `dbt compile && dbt-metabase models ...` and Metabase picks it up. No drift between the warehouse and the BI tool.
+- **Description:** *"One row per sales territory (10 total). Group by `region_group` for continent-level totals."*
+- **Entity Key:** `territory_id`
+- **Per-column descriptions:**
+  - `region_group` → *"'North America', 'Europe', or 'Pacific'."*
+- **Field types:**
+  - `sales_ytd`, `sales_last_year`, `cost_ytd`, `cost_last_year` → Type: **Currency**
+- **Hide:** `territory_key` → Only in detail views.
 
-> **Round-trip exercise:** add `description: "..."` to one of the columns in [`_adventureworks_marts__models.yml`](../dbt/models/marts/adventureworks/_adventureworks_marts__models.yml), re-run the sync, and watch the description appear as a tooltip in Metabase.
+### `dim_sales_person`
 
-## Step 4 — Build four questions
+- **Description:** *"One row per internal sales rep (17 total). Online orders have NO salesperson — filter for `sales_person_name is not empty` to exclude them in Q4 leaderboards."*
+- **Entity Key:** `sales_person_id`
+- **Per-column descriptions:**
+  - `commission_pct` → *"Commission as a fraction (0-1, not percent)."*
+  - `sales_quota` → *"Annual quota in USD; NULL means no quota set."*
+- **Field types:**
+  - `sales_quota`, `bonus`, `sales_ytd`, `sales_last_year` → Type: **Currency**
+- **Hide:** `sales_person_key` → Only in detail views.
 
-Use the GUI query builder (**+ New → Question**). All questions start from `Sales > Fact Sales`.
+## Step 3 — Curate the fact
+
+`fact_sales` is where the wiring matters most. The five `*_key` columns need to be set as **Foreign Key** with explicit targets — that's what unlocks Metabase's auto-joins and drill-through.
+
+**Admin → Table Metadata → analytics → marts → fact_sales:**
+
+### Table description
+
+> *"One row per order line item (~121k rows). Five surrogate FKs link to the dimensions; degenerate dims (`sales_order_id`, `order_status`, `is_online`) live on the fact for direct filtering. Every measure is additive at the line-item grain."*
+
+### Foreign-key wiring
+
+This is the heart of Step 3. For each `*_key` column:
+
+| Column on `fact_sales` | Field type        | Foreign-key target              |
+| ---------------------- | ----------------- | ------------------------------- |
+| `customer_key`         | **Foreign key**   | `dim_customer.customer_key`     |
+| `product_key`          | **Foreign key**   | `dim_product.product_key`       |
+| `territory_key`        | **Foreign key**   | `dim_sales_territory.territory_key` |
+| `sales_person_key`     | **Foreign key**   | `dim_sales_person.sales_person_key` |
+| `date_key`             | **Foreign key**   | `dim_date.date_key`             |
+
+For each: click the column → **"Type"** dropdown → select **Foreign key** → in the new dropdown that appears, pick the target column.
+
+> **Why target the surrogate `*_key` and not the natural `*_id`?** Two reasons. First, the surrogate is what's actually populated in the fact (the natural ID isn't there as a separate column for most dims). Second, the surrogate is the cleanest single-column join — what dbt designed it for.
+
+### Field types for measures
+
+| Column           | Type      |
+| ---------------- | --------- |
+| `unit_price`     | Currency  |
+| `unit_price_discount` | Percentage |
+| `line_total`     | Currency  |
+| `gross_amount`   | Currency  |
+| `discount_amount` | Currency |
+| `net_amount`     | Currency  |
+| `order_qty`      | Quantity  |
+
+### Hide internal-use columns
+
+These show up in the "View detail" pop-out but shouldn't clutter the Browse Data UI:
+
+- `sales_order_id`, `sales_order_detail_id` → Visibility: **Only in detail views** (degenerate dims, not for Group By)
+- All five `*_key` columns → leave **visible** despite the hash, because they're necessary for FK navigation in advanced questions. (You could hide them — opinions differ.)
+
+### Per-column descriptions
+
+Add at minimum:
+
+- `order_status` → *"Decoded from `Sales.SalesOrderHeader.Status`. Values: 'in process', 'approved', 'backordered', 'rejected', 'shipped', 'cancelled'."*
+- `is_online` → *"True for online orders (no salesperson). False for orders placed through a sales rep."*
+- `net_amount` → *"`line_total` from the source — the standard revenue measure for sums."*
+- `unit_price_discount` → *"Discount as a fraction (0-1)."*
+
+## Step 4 — Verify the wiring
+
+Build a quick question to make sure the foreign keys do what they should.
+
+**+ New → Question → Sales > Fact Sales:**
+
+- Summarize → **Sum of** `net_amount`
+- Group by → **Customer → Customer Type** (you can navigate the joined dimension because the FK is set)
+- Visualization → Bar chart
+- Save as `Revenue by customer type` (in your collection)
+
+If the **Customer** option doesn't appear in the Group By picker, the `customer_key` foreign-key target wasn't set correctly — go back to Step 3.
+
+Click any bar in the chart. You should get **"View these Fact Sales"** + **"Break out by …"** options, and crucially **"View this Customer"** which drills through to the dim's row. That drill-through is the payoff for the FK wiring.
+
+## Step 5 — Build a four-question dashboard
+
+All questions start from `Sales > Fact Sales`.
 
 ### Q1: Revenue by month
 
 - Summarize → **Sum of** `net_amount`
 - Group by → `Date → Order Date` (joined via `date_key → dim_date.date_actual`) → bucket by **Month**
 - Visualization → **Line chart**
-- Save as: `Revenue by month`
+- Save as `Revenue by month`.
 
 ### Q2: Top 10 products by revenue
 
@@ -144,14 +214,14 @@ Use the GUI query builder (**+ New → Question**). All questions start from `Sa
 - Group by → `Product → Product Name`
 - Sort → Sum of `net_amount` desc, limit 10
 - Visualization → **Row chart**
-- Save as: `Top 10 products by revenue`
+- Save as `Top 10 products by revenue`.
 
 ### Q3: Sales by territory and category
 
 - Summarize → Sum of `net_amount`
 - Group by → `Territory → Region Group` AND `Product → Category Name`
 - Visualization → **Pivot table**
-- Save as: `Sales by region and category`
+- Save as `Sales by region and category`.
 
 ### Q4: Top sales people
 
@@ -160,60 +230,58 @@ Use the GUI query builder (**+ New → Question**). All questions start from `Sa
 - Group by → `Sales Person → Sales Person Name`
 - Sort → Sum of `net_amount` desc
 - Visualization → **Table**
-- Save as: `Sales people leaderboard`
+- Save as `Sales people leaderboard`.
 
-## Step 5 — Build the dashboard
+### Wire them into a dashboard
 
-**+ New → Dashboard** → name it `Sales Overview`.
+**+ New → Dashboard** → name `Sales Overview`.
 
-Add the four questions:
+Layout:
 - Top row: Q1 (full width)
 - Middle row: Q2 (left half) and Q3 (right half)
 - Bottom row: Q4 (full width)
 
-Add a **dashboard filter** → "Date range" → wire it to the `Order Date` column on Q1, Q2, Q3, Q4.
+Add a **dashboard filter → Date range** → wire it to `Order Date` on Q1, Q2, Q3, Q4.
 
-Save and pin to your collection.
+Save and pin.
 
 ## Acceptance check
 
 You can:
-- Pick a date range in the dashboard filter and watch all four cards update
-- Click a bar in Q2 and drill through to the underlying line items in `fact_sales`
-- Click a sales person name in Q4 and see all their orders
-- Hover a column in any table view and see the description that came from your dbt YAML
+- Pick a date range in the dashboard filter and watch all four cards update in sync
+- Click a bar in Q2 and drill through to the underlying line items
+- Click a sales person name in Q4 and see all their orders (the dim navigation works because of the FK)
+- Hover any column header in `fact_sales` and see the description you set in Step 3
 
-## Why this matters — the dbt-driven BI loop
+## What you just built — and why this is fragile
 
-The pattern you just set up has three properties that hand-curated Metabase setups don't:
+You now have a fully-curated semantic layer in Metabase. Schemas, descriptions, FK relationships, semantic types — all set, all working.
 
-1. **Single source of truth.** Descriptions, semantic types, and FK relationships live in `dbt/models/**/*.yml`, version-controlled, code-reviewed, and tested. Metabase becomes a *projection* of that.
-2. **Repeatable.** A new joiner runs `dbt-metabase models ...` once and gets a fully-curated Metabase. No tribal knowledge ("ask Sarah how to set up Metabase").
-3. **Drift-resistant.** When the schema changes in dbt, Metabase is one CLI call away from being current. There's no "the description in Metabase is wrong because someone changed the column upstream and forgot to update the BI tool."
+But: **none of this lives in version control.** It's stored in Metabase's own `metabase` Postgres database. If you delete the Codespace, all of it goes with the volume. If a colleague spins up their own Codespace, they start from a blank Metabase.
 
-This is what gives the dbt + Metabase combination a different shape than e.g. dbt + Looker (where LookML is the semantic layer) or dbt + Tableau (where you'd hand-curate the data source).
+Worse: **it can drift from dbt.** You add a new column to `fact_sales` in dbt with `description: "..."` in YAML — Metabase doesn't know. You rename `unit_price_discount` to `discount_pct` in dbt — Metabase keeps the old name as the description.
 
-## Hints
+This is exactly what Tutorial 5 fixes.
 
-- **Numbers wrong?** Check `dbt run --target analytics` last completed successfully. Metabase caches metadata for ~1 hour; force a refresh with **Sync database now** in the database settings.
-- **`dbt-metabase` says "model not found"?** Either your `--include-schemas` is wrong, or you forgot `dbt compile` after a model rename. The tool can only see what's in `manifest.json`.
-- **API key expired?** They don't expire in OSS Metabase, but if the user that created the key is deactivated, the key dies. Recreate it under a service-account user if this matters in production.
-- **Need a custom metric Metabase doesn't expose?** Define it in dbt as a new mart column rather than as a SQL question. Then `dbt-metabase` propagates the description and it becomes available everywhere — testable, documented, single source of truth.
-- **Want to push descriptions but not FKs?** `dbt-metabase models --help` lists per-section flags like `--metabase-fk-columns-only` and `--metabase-exclude-sources`.
+## Next
+
+→ [Tutorial 5: Sync dbt → Metabase automatically](05-dbt-metabase-sync.md)
+
+The next tutorial replaces 80% of the clicking you just did with one CLI command, driven by your dbt YAML files. The patterns you learned here will help you understand exactly what gets synced and how to debug it.
 
 ## Common issues
 
 | Symptom | Likely cause |
 | ------- | ------------ |
-| `dbt-metabase` exits 0 but Metabase still shows no descriptions | Metabase's metadata sync is async — wait 30 seconds and refresh, or hit "Sync database now" |
-| FK targets are set but drill-through doesn't work | The dim hasn't been synced yet — make sure the dim's `--include-schemas` covers it (we use `marts`) |
-| `Authentication failed (401)` | Wrong / expired `mb_...` key, or you used a session token instead of an API key |
-| `Connection refused on localhost:3000` | You used `--metabase-url http://localhost:3000` from inside the workspace container. Use `http://metabase:3000` (the docker-compose service name). |
-| `Got unexpected extra argument (staging)` | Space-separated `--include-schemas marts staging`. Use comma-separated: `--include-schemas marts`. |
-| Sync runs forever / timeouts | The Metabase DB sync is still in progress from Step 2; wait for the "Done" indicator before running `dbt-metabase` |
+| Foreign-key dropdown is empty / doesn't list the dim | The dim's `customer_id` (or equivalent) isn't marked as **Entity Key**. Step 2 must complete before Step 3 wires up the fact. |
+| Foreign-key target column dropdown shows hash columns only | The dim's natural-key column isn't marked **Entity Key**; only Entity-Keyed columns can be FK targets. |
+| Drill-through "View this Customer" missing on a bar chart | The relevant FK on `fact_sales` either isn't set, or points at the wrong target. Re-check `customer_key → dim_customer.customer_key`. |
+| Revenue numbers look wrong by ~10x | Unit confusion — `unit_price_discount` is a fraction (0.1 = 10%), set its type to **Percentage** so Metabase formats it. |
+| Dashboard filter doesn't update one of the cards | Dashboard filters need explicit wiring per card to a date column. Edit the dashboard, click the filter pill, click each card in turn, pick `Order Date` for all four. |
 
-## Done!
+## Hints
 
-You've walked the full path: source system → bronze (Kestra) → silver/gold (dbt) → BI (Metabase) — with **dbt as the semantic layer** end to end.
-
-→ Back to [Tutorial overview](README.md)
+- `Admin → Audit` (Pro / EE feature only) shows who clicked what; in the OSS version you don't have this, so consider noting big curation changes in a `CHANGELOG.md` somewhere.
+- The "X-Ray" feature on a dim (e.g. `dim_customer`) auto-generates an exploratory dashboard — useful for sanity-checking that your FK wiring works end-to-end.
+- Click "**Sync database now**" in Admin → Databases after a `dbt build` to refresh Metabase's view of new columns or renamed tables.
+- Save curation work in chunks: it's easy to lose half an hour of clicking if you accidentally close a tab during config.

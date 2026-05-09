@@ -48,7 +48,7 @@ One fact table at the centre (`fact_sales`, grain = one row per order line item)
 
 > The default Codespace machine for this repo is **4-core / 16 GB** so Postgres + Kestra + Metabase + dbt all fit comfortably. You can downgrade in the Codespaces creation dialog if you don't need Metabase.
 
-For the full guided path (bronze → silver → gold → BI), see [`tutorial/README.md`](tutorial/README.md).
+For the full guided path (bronze → silver → gold → BI manual → BI automation), see [`tutorial/README.md`](tutorial/README.md). For a Metabase on-ramp before tackling Task 4, see [`Metabase/README.md`](Metabase/README.md).
 
 ## Using dbt
 
@@ -146,7 +146,8 @@ dbt/
   models/
     staging/           # stg_books, stg_members, stg_loans (views)
     marts/             # book_popularity, member_activity (tables)
-tutorial/              # guided workshop (Bronze → Silver → Gold → Metabase)
+Metabase/              # on-ramp: how to log in + pointer to Metabase Learn videos
+tutorial/              # guided workshop (Bronze → Silver → Gold → BI → dbt-metabase sync)
 ```
 
 ## Notes
