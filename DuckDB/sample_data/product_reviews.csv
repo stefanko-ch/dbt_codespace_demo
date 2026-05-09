@@ -1,0 +1,16 @@
+id,product_name,review_text,rating,reviewer,review_date,helpful_votes
+1,"DuckDB Pro License","Absolutely fantastic product! The performance is incredible and setup was a breeze. Highly recommend for any data team. Worth every penny!",5,"HappyCustomer",2024-01-10,45
+2,"DuckDB Pro License","Good product but documentation could be better. Had some trouble with advanced features. Support was helpful though.",4,"DataAnalyst42",2024-01-12,23
+3,"DuckDB Pro License","Not what I expected. The product works but doesn't integrate well with our existing tools. Disappointed with the lack of enterprise features.",2,"EnterpriseUser",2024-01-15,12
+4,"Analytics Dashboard","Beautiful interface and easy to use! Love the real-time updates. Only downside is it can be slow with very large datasets.",4,"DashboardFan",2024-01-18,34
+5,"Analytics Dashboard","Terrible experience. Crashed multiple times and lost my work. Customer support was unresponsive. DO NOT BUY!",1,"AngryUser",2024-01-20,67
+6,"Analytics Dashboard","Decent product for the price. Nothing special but gets the job done. Would like to see more customization options.",3,"BudgetBuyer",2024-01-22,18
+7,"Data Pipeline Tool","Game changer for our ETL processes! Reduced pipeline execution time by 80%. The team loves it!",5,"ETLMaster",2024-01-25,89
+8,"Data Pipeline Tool","Works well but the learning curve is steep. Took our team weeks to get up to speed. Documentation needs improvement.",3,"LearningUser",2024-01-28,27
+9,"Data Pipeline Tool","Solid product with great support. Had a few issues initially but the support team resolved them quickly. Happy overall!",4,"SupportedUser",2024-02-01,41
+10,"SQL Editor Pro","The best SQL editor I've ever used! Autocomplete is amazing and the query history feature saves so much time.",5,"SQLLover",2024-02-03,56
+11,"SQL Editor Pro","Good editor but expensive compared to alternatives. The features are nice but not sure if they justify the price.",3,"PriceConscious",2024-02-05,22
+12,"SQL Editor Pro","Crashed on startup. Tried reinstalling multiple times. Complete waste of money. Asked for refund.",1,"Frustrated",2024-02-07,38
+13,"Cloud Storage Connector","Seamless integration with AWS and GCP. Setup took only 5 minutes. Performance is excellent even with large files.",5,"CloudExpert",2024-02-10,72
+14,"Cloud Storage Connector","Good product but limited to major cloud providers. Would love to see Azure and other providers supported.",4,"AzureUser",2024-02-12,29
+15,"Cloud Storage Connector","Does what it promises. Nothing more, nothing less. Stable and reliable for our daily operations.",4,"ReliableReviewer",2024-02-15,19

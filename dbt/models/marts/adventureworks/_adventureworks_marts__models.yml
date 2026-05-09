@@ -1,0 +1,104 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: "Calendar dimension, one row per day from 2010-01-01 through 2030-12-31."
+    columns:
+      - name: date_key
+        description: '{{ doc("surrogate_key") }}'
+        tests: [unique, not_null]
+      - name: date_actual
+        tests: [unique, not_null]
+
+  - name: dim_customer
+    description: "One row per customer; individuals carry name from Person.Person, stores carry NULL name."
+    columns:
+      - name: customer_key
+        description: '{{ doc("surrogate_key") }}'
+        tests: [unique, not_null]
+      - name: customer_id
+        tests: [unique, not_null]
+      - name: customer_type
+        tests:
+          - accepted_values:
+              values: ['individual', 'store', 'unknown']
+
+  - name: dim_product
+    description: "One row per product; product/subcategory/category hierarchy denormalized for BI."
+    columns:
+      - name: product_key
+        description: '{{ doc("surrogate_key") }}'
+        tests: [unique, not_null]
+      - name: product_id
+        tests: [unique, not_null]
+      - name: list_price
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+
+  - name: dim_sales_territory
+    description: "One row per sales territory."
+    columns:
+      - name: territory_key
+        description: '{{ doc("surrogate_key") }}'
+        tests: [unique, not_null]
+      - name: territory_id
+        tests: [unique, not_null]
+
+  - name: dim_sales_person
+    description: "One row per internal sales rep, with name joined from Person.Person."
+    columns:
+      - name: sales_person_key
+        description: '{{ doc("surrogate_key") }}'
+        tests: [unique, not_null]
+      - name: sales_person_id
+        tests: [unique, not_null]
+
+  - name: fact_sales
+    description: '{{ doc("fact_sales_grain") }}'
+    columns:
+      - name: customer_key
+        description: '{{ doc("surrogate_key") }}'
+        tests:
+          - not_null
+          - relationships: { to: ref('dim_customer'),         field: customer_key }
+      - name: product_key
+        description: '{{ doc("surrogate_key") }}'
+        tests:
+          - not_null
+          - relationships: { to: ref('dim_product'),          field: product_key }
+      - name: territory_key
+        description: '{{ doc("surrogate_key") }}'
+        tests:
+          - relationships:
+              to: ref('dim_sales_territory')
+              field: territory_key
+              where: "territory_key is not null"
+      - name: sales_person_key
+        description: '{{ doc("surrogate_key") }}'
+        tests:
+          - relationships:
+              to: ref('dim_sales_person')
+              field: sales_person_key
+              where: "sales_person_key is not null"
+      - name: date_key
+        description: '{{ doc("surrogate_key") }}'
+        tests:
+          - not_null
+          - relationships: { to: ref('dim_date'),             field: date_key }
+      - name: order_qty
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: net_amount
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - sales_order_id
+            - sales_order_detail_id

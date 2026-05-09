@@ -604,4 +604,4 @@ Pick at least three to spend time on.
 
 ## Next
 
-→ Back to [Tutorial overview](README.md). The BI / dashboard layer (Metabase) follows in a separate session.
+→ [Task 4: Analyze in Metabase](04-metabase.md)

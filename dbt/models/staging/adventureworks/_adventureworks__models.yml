@@ -1,0 +1,178 @@
+version: 2
+
+models:
+  - name: stg_aw__customer
+    description: "One row per customer; derived `customer_type` distinguishes individuals from stores."
+    columns:
+      - name: customer_id
+        description: "Natural key from `Sales.Customer`."
+        tests:
+          - unique
+          - not_null
+
+      - name: customer_type
+        description: "'individual', 'store', or 'unknown'."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['individual', 'store', 'unknown']
+
+  - name: stg_aw__person
+    description: "One row per person (individuals -- not stores)."
+    columns:
+      - name: person_id
+        tests: [unique, not_null]
+      - name: full_name
+        tests: [not_null]
+      - name: person_type
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['SC', 'IN', 'SP', 'EM', 'VC', 'GC']
+
+  - name: stg_aw__product_category
+    description: "One row per product category (top-level grouping)."
+    columns:
+      - name: product_category_id
+        tests: [unique, not_null]
+      - name: category_name
+        tests: [unique, not_null]
+
+  - name: stg_aw__product_subcategory
+    description: "One row per product subcategory; FK to product_category."
+    columns:
+      - name: product_subcategory_id
+        tests: [unique, not_null]
+      - name: product_category_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_aw__product_category')
+              field: product_category_id
+
+  - name: stg_aw__product
+    description: "One row per product. Derived `is_active` flag based on sell_end_date and discontinued_date."
+    columns:
+      - name: product_id
+        tests: [unique, not_null]
+      - name: product_name
+        tests: [not_null]
+      - name: list_price
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: standard_cost
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: product_subcategory_id
+        tests:
+          - relationships:
+              to: ref('stg_aw__product_subcategory')
+              field: product_subcategory_id
+              where: "product_subcategory_id is not null"
+
+  - name: stg_aw__sales_territory
+    description: "One row per sales territory."
+    columns:
+      - name: territory_id
+        tests: [unique, not_null]
+      - name: territory_name
+        tests: [unique, not_null]
+      - name: region_group
+        tests:
+          - accepted_values:
+              values: ['North America', 'Europe', 'Pacific']
+
+  - name: stg_aw__sales_person
+    description: "One row per internal sales rep."
+    columns:
+      - name: sales_person_id
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('stg_aw__person')
+              field: person_id
+      - name: territory_id
+        tests:
+          - relationships:
+              to: ref('stg_aw__sales_territory')
+              field: territory_id
+              where: "territory_id is not null"
+      - name: commission_pct
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0 and commission_pct <= 1"
+
+  - name: stg_aw__sales_order_header
+    description: "One row per sales order. `status_name` decodes the integer status."
+    columns:
+      - name: sales_order_id
+        tests: [unique, not_null]
+      - name: order_date
+        tests: [not_null]
+      - name: customer_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_aw__customer')
+              field: customer_id
+      - name: territory_id
+        tests:
+          - relationships:
+              to: ref('stg_aw__sales_territory')
+              field: territory_id
+      - name: sales_person_id
+        tests:
+          - relationships:
+              to: ref('stg_aw__sales_person')
+              field: sales_person_id
+              where: "sales_person_id is not null"
+      - name: total_amount
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: status_name
+        description: '{{ doc("aw_status_name") }}'
+        tests:
+          - accepted_values:
+              values:
+                - 'in process'
+                - 'approved'
+                - 'backordered'
+                - 'rejected'
+                - 'shipped'
+                - 'cancelled'
+                - 'unknown'
+
+  - name: stg_aw__sales_order_detail
+    description: "One row per order line item. Composite natural key (sales_order_id, sales_order_detail_id)."
+    columns:
+      - name: sales_order_detail_id
+        tests: [unique, not_null]
+      - name: sales_order_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_aw__sales_order_header')
+              field: sales_order_id
+      - name: product_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_aw__product')
+              field: product_id
+      - name: order_qty
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: unit_price
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: line_total
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
