@@ -1,12 +1,17 @@
 # Task 4 — Analyze in Metabase
 
-**Goal:** plug Metabase into the `analytics` warehouse and build a small Sales dashboard from the star schema you just created.
+**Goal:** plug Metabase into the `analytics` warehouse and build a small Sales dashboard from the star schema you just created — and see what makes a *dbt-driven* BI setup different from a plain one.
 
 By the end you'll have:
 - The `analytics` Postgres added as a Metabase data source
-- The `marts` schema modeled (descriptions, primary keys, FK relationships)
+- The marts schema **modeled automatically from your dbt project** — descriptions, primary keys, foreign-key relationships, semantic types, all synced via `dbt-metabase` (no clicking through admin screens)
 - Four questions answered from the data
 - A dashboard combining them
+
+> ## First time using Metabase?
+> This task assumes you already know what Metabase **is** and how its UI is roughly organised — Questions, Dashboards, Collections. If those terms are new, spend ~30 min in the official, free [**Metabase Learn**](https://www.metabase.com/learn/metabase-basics/getting-started/) tutorials before continuing. They cover concepts, the query builder, dashboards, filters, and summarisation — exactly the basics this task builds on.
+>
+> The *interesting* part of this task isn't "how does Metabase work" — it's how dbt and Metabase reinforce each other when you stop treating them as separate tools.
 
 ## Step 1 — Open Metabase and create the admin account
 
@@ -37,27 +42,85 @@ Save. Metabase will sync — wait for the "Done" indicator (~30 seconds).
 
 > Tip: limiting **Schemas** to `marts,staging` keeps Metabase from scanning Kestra's internal tables.
 
-## Step 3 — Curate the model (one-time setup)
+At this point Metabase has discovered your tables — but it knows nothing about them. No descriptions, no relationships, no idea which columns are primary keys. If you click **Browse data → analytics → marts → fact_sales**, you'll see raw column names with no structure on top.
 
-Metabase needs a few hints to make the star schema usable for non-technical users.
+A traditional Metabase setup would now have you clicking through **Admin → Table Metadata** for every table, manually setting:
+- A description per table and column
+- "Entity Key" markers on `*_key` columns
+- "Foreign Key" targets pointing each `fact_sales.*_key` to its dim
+- Semantic types for emails, currencies, URLs
 
-**Admin Settings → Table Metadata → analytics:**
+That's ~80 clicks for our six marts. **And** it has to be redone whenever the schema changes.
 
-For `marts.fact_sales`:
-- Table description: "One row per order line item. Use to count sales, qty, and revenue."
-- Hide degenerate columns from regular users: `sales_order_id`, `sales_order_detail_id` → set to "Only in detail views"
-- For each `*_key` column, set **Foreign key** target:
-  - `customer_key` → `dim_customer.customer_key`
-  - `product_key` → `dim_product.product_key`
-  - `territory_key` → `dim_sales_territory.territory_key`
-  - `sales_person_key` → `dim_sales_person.sales_person_key`
-  - `date_key` → `dim_date.date_key`
+We can do better.
 
-For each `dim_*`:
-- Set the `*_key` column type to **Entity Key**
-- Add a short description
+## Step 3 — Sync the dbt model into Metabase with `dbt-metabase`
 
-This unlocks Metabase's auto-joins and "Drill through" UX.
+[`dbt-metabase`](https://github.com/gouline/dbt-metabase) is an actively maintained Python tool (v1.7.x as of 2026) that reads your dbt project's manifest and propagates everything Metabase needs to know about your tables — directly from your `*.yml` files.
+
+What gets synced from dbt → Metabase:
+
+| dbt source                                  | Metabase result                            |
+| ------------------------------------------- | ------------------------------------------ |
+| `description:` on a model or column          | Metabase table / column description         |
+| `tests: [unique, not_null]` on a key column  | "Entity Key" marker                         |
+| `tests: relationships:`                     | "Foreign Key" target on the column         |
+| Column-name conventions (`*_email`, `*_url`, `..._id`) | Inferred semantic types                    |
+| `meta:` blocks in YAML (custom)             | Display names, hidden flags, semantic types |
+
+### 3.1 — Create a Metabase API key
+
+In Metabase: **Admin → Settings → Authentication → API Keys → Create API key**.
+
+- Name: `dbt-metabase`
+- Group: **Administrators** (the sync needs admin scope to write metadata)
+
+Copy the resulting `mb_...` token to your clipboard. Treat it like a password — it grants full admin access. Store it as an environment variable rather than pasting it on the command line:
+
+```bash
+export MB_API_KEY='mb_paste_your_key_here'
+```
+
+### 3.2 — Compile the dbt manifest
+
+`dbt-metabase` reads `target/manifest.json`, which is regenerated every time you run any dbt command. To produce one without re-running models:
+
+```bash
+cd dbt
+dbt compile --target analytics
+```
+
+The manifest now lives at `dbt/target/manifest.json` and contains every model, column, description, test, and tag in your project.
+
+### 3.3 — Run the sync
+
+```bash
+dbt-metabase models \
+  --manifest-path target/manifest.json \
+  --metabase-url http://localhost:3000 \
+  --metabase-api-key "$MB_API_KEY" \
+  --metabase-database analytics \
+  --include-schemas marts staging
+```
+
+Expected output: a list of synced models with the count of fields updated per model. ~5 seconds total.
+
+Now refresh Metabase (**Browse data → analytics → marts → fact_sales**) and look at the column list. Compare with the "before" state:
+
+- `customer_key`, `product_key`, `date_key`, `territory_key`, `sales_person_key` are now marked as **Foreign Key** with the right target dim auto-set.
+- The natural-key columns on each dim (`customer_id`, `product_id`, …) are marked as **Entity Key**.
+- Every column you described in [`_adventureworks_marts__models.yml`](../dbt/models/marts/adventureworks/_adventureworks_marts__models.yml) carries that description in Metabase's UI as a tooltip.
+
+### 3.4 — Verify with a question
+
+Click **+ New → Question → Sales > Fact Sales**. Try **Summarize → Sum of `net_amount` → Group by `Customer → Customer Type`**. Notice:
+
+- You can navigate `Customer → ...` because the FK is set.
+- The drill-down options for each row include "View customer" and "View underlying records" because Metabase now knows the relationships.
+
+That single CLI call replaced ~80 clicks. More importantly: your dbt YAML is now the **single source of truth** for the semantic layer. When you add a column description in dbt, re-run `dbt compile && dbt-metabase models ...` and Metabase picks it up. No drift between the warehouse and the BI tool.
+
+> **Round-trip exercise:** add `description: "..."` to one of the columns in [`_adventureworks_marts__models.yml`](../dbt/models/marts/adventureworks/_adventureworks_marts__models.yml), re-run the sync, and watch the description appear as a tooltip in Metabase.
 
 ## Step 4 — Build four questions
 
@@ -113,15 +176,37 @@ You can:
 - Pick a date range in the dashboard filter and watch all four cards update
 - Click a bar in Q2 and drill through to the underlying line items in `fact_sales`
 - Click a sales person name in Q4 and see all their orders
+- Hover a column in any table view and see the description that came from your dbt YAML
+
+## Why this matters — the dbt-driven BI loop
+
+The pattern you just set up has three properties that hand-curated Metabase setups don't:
+
+1. **Single source of truth.** Descriptions, semantic types, and FK relationships live in `dbt/models/**/*.yml`, version-controlled, code-reviewed, and tested. Metabase becomes a *projection* of that.
+2. **Repeatable.** A new joiner runs `dbt-metabase models ...` once and gets a fully-curated Metabase. No tribal knowledge ("ask Sarah how to set up Metabase").
+3. **Drift-resistant.** When the schema changes in dbt, Metabase is one CLI call away from being current. There's no "the description in Metabase is wrong because someone changed the column upstream and forgot to update the BI tool."
+
+This is what gives the dbt + Metabase combination a different shape than e.g. dbt + Looker (where LookML is the semantic layer) or dbt + Tableau (where you'd hand-curate the data source).
 
 ## Hints
 
 - **Numbers wrong?** Check `dbt run --target analytics` last completed successfully. Metabase caches metadata for ~1 hour; force a refresh with **Sync database now** in the database settings.
-- **Joins not happening automatically?** Re-check that you set foreign keys on all `*_key` columns in fact_sales (Step 3).
-- **Need a custom metric Metabase doesn't expose?** Define it in dbt as a new mart column rather than as a SQL question. The metric becomes available everywhere and is testable.
+- **`dbt-metabase` says "model not found"?** Either your `--include-schemas` is wrong, or you forgot `dbt compile` after a model rename. The tool can only see what's in `manifest.json`.
+- **API key expired?** They don't expire in OSS Metabase, but if the user that created the key is deactivated, the key dies. Recreate it under a service-account user if this matters in production.
+- **Need a custom metric Metabase doesn't expose?** Define it in dbt as a new mart column rather than as a SQL question. Then `dbt-metabase` propagates the description and it becomes available everywhere — testable, documented, single source of truth.
+- **Want to push descriptions but not FKs?** `dbt-metabase models --help` lists per-section flags like `--metabase-fk-columns-only` and `--metabase-exclude-sources`.
+
+## Common issues
+
+| Symptom | Likely cause |
+| ------- | ------------ |
+| `dbt-metabase` exits 0 but Metabase still shows no descriptions | Metabase's metadata sync is async — wait 30 seconds and refresh, or hit "Sync database now" |
+| FK targets are set but drill-through doesn't work | The dim hasn't been synced yet — make sure the dim's `--include-schemas` covers it (we use `marts staging`) |
+| `Authentication failed (401)` | Wrong / expired `mb_...` key, or you used a session token instead of an API key |
+| Sync runs forever / timeouts | The Metabase DB sync is still in progress from Step 2; wait for the "Done" indicator before running `dbt-metabase` |
 
 ## Done!
 
-You've walked the full path: source system → bronze (Kestra) → silver/gold (dbt) → BI (Metabase). The pattern scales: add another source by creating a new flow plus `raw.*` tables, write `stg_*` models on top, extend the star schema with new dimensions or facts, and dashboards consume them automatically.
+You've walked the full path: source system → bronze (Kestra) → silver/gold (dbt) → BI (Metabase) — with **dbt as the semantic layer** end to end.
 
 → Back to [Tutorial overview](README.md)
