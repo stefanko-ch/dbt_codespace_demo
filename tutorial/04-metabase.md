@@ -35,12 +35,12 @@ Metabase's own data (questions, dashboards, users) is persisted in the `metabase
 | Database name    | `analytics`          |
 | Username         | `postgres`           |
 | Password         | `postgres`           |
-| Schemas          | `marts,staging`      |
+| Schemas          | `marts`      |
 | Use a secure connection (SSL) | off    |
 
 Save. Metabase will sync — wait for the "Done" indicator (~30 seconds).
 
-> Tip: limiting **Schemas** to `marts,staging` keeps Metabase from scanning Kestra's internal tables.
+> Tip: limiting **Schemas** to `marts` (not `staging`, not `raw`) keeps Metabase focused on the BI-ready layer. Staging is an intermediate dbt artefact — your end users don't want to browse `stg_aw__sales_order_header` next to `fact_sales`.
 
 At this point Metabase has discovered your tables — but it knows nothing about them. No descriptions, no relationships, no idea which columns are primary keys. If you click **Browse data → analytics → marts → fact_sales**, you'll see raw column names with no structure on top.
 
@@ -100,13 +100,13 @@ dbt-metabase models \
   --metabase-url http://metabase:3000 \
   --metabase-api-key "$MB_API_KEY" \
   --metabase-database analytics \
-  --include-schemas marts,staging
+  --include-schemas marts
 ```
 
 Two non-obvious bits worth pointing out:
 
 - **`--metabase-url http://metabase:3000`**, not `localhost`. `dbt-metabase` runs inside the `workspace` container; from there, `localhost:3000` is the workspace itself. Metabase is reachable via the docker-compose service name `metabase`.
-- **`--include-schemas marts,staging`**, comma-separated. Space-separated would be parsed as positional arguments and fail.
+- **`--include-schemas marts`**, comma-separated. Space-separated would be parsed as positional arguments and fail.
 
 Expected output: a list of synced models with the count of fields updated per model. ~5 seconds total.
 
@@ -206,10 +206,10 @@ This is what gives the dbt + Metabase combination a different shape than e.g. db
 | Symptom | Likely cause |
 | ------- | ------------ |
 | `dbt-metabase` exits 0 but Metabase still shows no descriptions | Metabase's metadata sync is async — wait 30 seconds and refresh, or hit "Sync database now" |
-| FK targets are set but drill-through doesn't work | The dim hasn't been synced yet — make sure the dim's `--include-schemas` covers it (we use `marts,staging`) |
+| FK targets are set but drill-through doesn't work | The dim hasn't been synced yet — make sure the dim's `--include-schemas` covers it (we use `marts`) |
 | `Authentication failed (401)` | Wrong / expired `mb_...` key, or you used a session token instead of an API key |
 | `Connection refused on localhost:3000` | You used `--metabase-url http://localhost:3000` from inside the workspace container. Use `http://metabase:3000` (the docker-compose service name). |
-| `Got unexpected extra argument (staging)` | Space-separated `--include-schemas marts staging`. Use comma-separated: `--include-schemas marts,staging`. |
+| `Got unexpected extra argument (staging)` | Space-separated `--include-schemas marts staging`. Use comma-separated: `--include-schemas marts`. |
 | Sync runs forever / timeouts | The Metabase DB sync is still in progress from Step 2; wait for the "Done" indicator before running `dbt-metabase` |
 
 ## Done!
