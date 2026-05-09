@@ -6,6 +6,13 @@ with spine as (
         start_date="cast('2010-01-01' as date)",
         end_date="cast('2031-01-01' as date)"
     ) }}
+),
+
+-- date_spine returns timestamp (postgres generate_series behavior); cast to
+-- date so the surrogate-key hash here matches the one fact_sales generates
+-- from order_date (which is already date-typed in stg_aw__sales_order_header).
+spine_as_date as (
+    select date_day::date as date_day from spine
 )
 
 select
@@ -24,4 +31,4 @@ select
     (extract(dow from date_day) in (0, 6)) as is_weekend,
     (date_trunc('quarter', date_day) = date_day) as is_quarter_start,
     (date_day = (date_trunc('month', date_day) + interval '1 month' - interval '1 day')::date) as is_month_end
-from spine
+from spine_as_date

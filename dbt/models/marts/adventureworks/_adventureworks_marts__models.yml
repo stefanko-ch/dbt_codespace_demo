@@ -70,11 +70,17 @@ models:
       - name: territory_key
         description: '{{ doc("surrogate_key") }}'
         tests:
-          - relationships: { to: ref('dim_sales_territory'),  field: territory_key }
+          - relationships:
+              to: ref('dim_sales_territory')
+              field: territory_key
+              where: "territory_key is not null"
       - name: sales_person_key
         description: '{{ doc("surrogate_key") }}'
         tests:
-          - relationships: { to: ref('dim_sales_person'),     field: sales_person_key }
+          - relationships:
+              to: ref('dim_sales_person')
+              field: sales_person_key
+              where: "sales_person_key is not null"
       - name: date_key
         description: '{{ doc("surrogate_key") }}'
         tests:

@@ -33,8 +33,12 @@ select
     {{ dbt_utils.generate_surrogate_key(['j.order_date']) }}      as date_key,
     {{ dbt_utils.generate_surrogate_key(['j.customer_id']) }}     as customer_key,
     {{ dbt_utils.generate_surrogate_key(['j.product_id']) }}      as product_key,
-    {{ dbt_utils.generate_surrogate_key(['j.territory_id']) }}    as territory_key,
-    {{ dbt_utils.generate_surrogate_key(['j.sales_person_id']) }} as sales_person_key,
+    case when j.territory_id is not null
+         then {{ dbt_utils.generate_surrogate_key(['j.territory_id']) }} end
+                                                                  as territory_key,
+    case when j.sales_person_id is not null
+         then {{ dbt_utils.generate_surrogate_key(['j.sales_person_id']) }} end
+                                                                  as sales_person_key,
 
     j.sales_order_id,
     j.sales_order_detail_id,
